@@ -8,7 +8,7 @@ export const transactionsTable = pgTable("transactions", {
   userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  type: text("type").notNull(), // "credit" | "debit"
+  type: text("type").notNull(), // "deposit" | "withdrawal" | "send" | "receive" | "card_payment"
   amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("USD"),
   description: text("description").notNull(),

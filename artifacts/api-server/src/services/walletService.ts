@@ -43,10 +43,10 @@ export async function addMoney(userId: string, amount: number, note?: string) {
 
   await db.insert(transactionsTable).values({
     userId,
-    type: "credit",
+    type: "deposit",
     amount: amount.toFixed(2),
     currency: "USD",
-    description: note ? `Top-up: ${note}` : "Account top-up",
+    description: note ? `Deposit: ${note}` : "Account deposit",
     status: "completed",
   });
 
@@ -82,7 +82,7 @@ export async function withdrawMoney(userId: string, amount: number, note?: strin
 
   await db.insert(transactionsTable).values({
     userId,
-    type: "debit",
+    type: "withdrawal",
     amount: amount.toFixed(2),
     currency: "USD",
     description: note ? `Withdrawal: ${note}` : "Bank withdrawal",
@@ -162,7 +162,7 @@ export async function sendMoney(
     .insert(transactionsTable)
     .values({
       userId: senderId,
-      type: "debit",
+      type: "send",
       amount: amount.toFixed(2),
       currency: "USD",
       description,
@@ -180,7 +180,7 @@ export async function sendMoney(
 
   await db.insert(transactionsTable).values({
     userId: recipient.id,
-    type: "credit",
+    type: "receive",
     amount: amount.toFixed(2),
     currency: "USD",
     description: `Received from ${sender?.firstName ?? "User"} ${sender?.lastName ?? ""}`.trim(),

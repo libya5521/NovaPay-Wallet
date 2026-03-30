@@ -23,10 +23,7 @@ export function requireAuth(
     req.userId = payload.sub;
     req.userEmail = payload.email;
     next();
-  } catch (err: any) {
-    res.status(401).json({
-      error: "Unauthorized",
-      message: err?.message ?? "Invalid token",
-    });
+  } catch {
+    res.status(401).json({ error: "Unauthorized", message: "Invalid token" });
   }
 }
