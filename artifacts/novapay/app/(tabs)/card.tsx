@@ -50,6 +50,54 @@ const cardFeatureStyles = StyleSheet.create({
   desc: { fontFamily: "Inter_400Regular", fontSize: 12 },
 });
 
+function LimitRow({
+  label,
+  used,
+  total,
+  currency,
+  colors,
+}: {
+  label: string;
+  used: number;
+  total: number;
+  currency: string;
+  colors: typeof Colors.light;
+}) {
+  const pct = Math.min(1, used / total);
+  return (
+    <View style={[limitStyles.row, { backgroundColor: colors.surface }]}>
+      <View style={limitStyles.labelRow}>
+        <Text style={[limitStyles.label, { color: colors.text }]}>{label}</Text>
+        <Text style={[limitStyles.amount, { color: colors.textSecondary }]}>
+          {currency}{used.toLocaleString()} / {currency}{total.toLocaleString()}
+        </Text>
+      </View>
+      <View style={[limitStyles.track, { backgroundColor: colors.border }]}>
+        <View
+          style={[
+            limitStyles.fill,
+            {
+              width: `${Math.round(pct * 100)}%`,
+              backgroundColor: pct > 0.8 ? colors.error : pct > 0.5 ? colors.warning : colors.tint,
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+const limitStyles = StyleSheet.create({
+  row: { padding: 14, borderRadius: 14, marginBottom: 8, gap: 10 },
+  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  label: { fontFamily: "Inter_500Medium", fontSize: 13 },
+  amount: { fontFamily: "Inter_400Regular", fontSize: 12 },
+  track: { height: 6, borderRadius: 3, width: "100%" },
+  fill: { height: 6, borderRadius: 3 },
+  note: { flexDirection: "row", gap: 8, padding: 12, borderRadius: 10, marginTop: 4, alignItems: "flex-start" },
+  noteText: { fontFamily: "Inter_400Regular", fontSize: 12, flex: 1, lineHeight: 16 },
+});
+
 export default function CardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -175,6 +223,39 @@ export default function CardScreen() {
             trackColor={{ false: colors.error, true: colors.success }}
             thumbColor="#FFFFFF"
           />
+        </View>
+      )}
+
+      {card && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Card Limits</Text>
+          <LimitRow
+            label="Daily spend limit"
+            used={0}
+            total={5000}
+            currency="$"
+            colors={colors}
+          />
+          <LimitRow
+            label="Monthly spend limit"
+            used={0}
+            total={20000}
+            currency="$"
+            colors={colors}
+          />
+          <LimitRow
+            label="Per-transaction limit"
+            used={0}
+            total={2000}
+            currency="$"
+            colors={colors}
+          />
+          <View style={[limitStyles.note, { backgroundColor: colors.tintLight }]}>
+            <Feather name="info" size={13} color={colors.tint} />
+            <Text style={[limitStyles.noteText, { color: colors.tint }]}>
+              Limits may increase after completing identity verification.
+            </Text>
+          </View>
         </View>
       )}
 

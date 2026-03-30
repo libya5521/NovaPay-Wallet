@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import {
   Alert,
-  Clipboard,
   Pressable,
   StyleSheet,
   Text,
   View,
   useColorScheme,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
@@ -101,8 +101,8 @@ export function VirtualCard({
   const maskedExpiry = "••/••";
   const maskedCvv = "•••";
 
-  const copyToClipboard = (text: string, label: string) => {
-    Clipboard.setString(text);
+  const copyToClipboard = async (text: string, label: string) => {
+    await Clipboard.setStringAsync(text);
     Alert.alert("Copied", `${label} copied to clipboard.`);
   };
 
