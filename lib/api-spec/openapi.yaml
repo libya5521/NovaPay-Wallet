@@ -599,30 +599,31 @@ components:
 
     VirtualCard:
       type: object
+      description: >
+        Virtual card details. Full PAN and CVV are never returned by the API.
+        Only the last 4 digits (maskedNumber) and expiry are provided.
       properties:
         id:
           type: string
-        cardNumber:
+        maskedNumber:
           type: string
+          description: Last 4 digits of the card number only (e.g. "4321")
+          example: "4321"
         cardHolder:
           type: string
-        expiryMonth:
-          type: integer
-        expiryYear:
-          type: integer
-        cvv:
+        expiresAt:
           type: string
+          description: Card expiry in ISO "YYYY-MM" format
+          example: "2028-06"
         cardType:
           type: string
           enum: [visa, mastercard]
         isActive:
           type: boolean
       required:
-        - cardNumber
+        - maskedNumber
         - cardHolder
-        - expiryMonth
-        - expiryYear
-        - cvv
+        - expiresAt
         - cardType
         - isActive
 

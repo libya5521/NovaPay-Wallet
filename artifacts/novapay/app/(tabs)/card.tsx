@@ -180,11 +180,9 @@ export default function CardScreen() {
         </View>
       ) : card ? (
         <VirtualCard
-          cardNumber={card.cardNumber}
+          maskedNumber={card.maskedNumber}
           cardHolder={card.cardHolder}
-          expiryMonth={card.expiryMonth}
-          expiryYear={card.expiryYear}
-          cvv={card.cvv}
+          expiresAt={card.expiresAt}
           cardType={card.cardType}
           isActive={card.isActive}
         />

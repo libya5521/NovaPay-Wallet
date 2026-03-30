@@ -95,11 +95,11 @@ export const VirtualCardCardType = {
 
 export interface VirtualCard {
   id?: string;
-  cardNumber: string;
+  /** Last 4 digits only — e.g. "4321". Full PAN is never returned. */
+  maskedNumber: string;
   cardHolder: string;
-  expiryMonth: number;
-  expiryYear: number;
-  cvv: string;
+  /** ISO "YYYY-MM" expiry string */
+  expiresAt: string;
   cardType: VirtualCardCardType;
   isActive: boolean;
 }
