@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 import { rateLimiter } from "../middlewares/rateLimiter.js";
 import { registerUser, loginUser } from "../services/authService.js";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 
@@ -47,7 +48,7 @@ router.post("/register", authRateLimit, async (req, res) => {
     if (e.code === "DUPLICATE_EMAIL") {
       res.status(409).json({ error: "Conflict", message: "Email already registered" });
     } else {
-      (req as any).log.error({ err }, "Register error");
+      logger.error({ err }, "Register error");
       res.status(500).json({ error: "InternalError", message: "Registration failed" });
     }
   }
@@ -71,7 +72,7 @@ router.post("/login", authRateLimit, async (req, res) => {
     if (e.code === "INVALID_CREDENTIALS") {
       res.status(401).json({ error: "Unauthorized", message: "Invalid email or password" });
     } else {
-      (req as any).log.error({ err }, "Login error");
+      logger.error({ err }, "Login error");
       res.status(500).json({ error: "InternalError", message: "Login failed" });
     }
   }

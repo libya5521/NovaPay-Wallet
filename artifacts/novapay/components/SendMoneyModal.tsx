@@ -1,6 +1,8 @@
-import React, { useState, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Alert,
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -16,12 +18,37 @@ import { useSendMoney } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import Colors from "@/constants/colors";
 
+const RECIPIENTS_STORAGE_KEY = "novapay_recent_recipients";
+const MAX_RECENT_RECIPIENTS = 5;
+
+type Recipient = { email: string; name?: string };
 type Step = "form" | "confirm";
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+}
+
+async function loadRecipients(): Promise<Recipient[]> {
+  try {
+    const raw = await AsyncStorage.getItem(RECIPIENTS_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as Recipient[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveRecipient(email: string) {
+  try {
+    const current = await loadRecipients();
+    const updated = [
+      { email },
+      ...current.filter((r) => r.email.toLowerCase() !== email.toLowerCase()),
+    ].slice(0, MAX_RECENT_RECIPIENTS);
+    await AsyncStorage.setItem(RECIPIENTS_STORAGE_KEY, JSON.stringify(updated));
+  } catch {}
 }
 
 export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
@@ -35,6 +62,13 @@ export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
   const [note, setNote] = useState("");
   const [emailError, setEmailError] = useState("");
   const [amountError, setAmountError] = useState("");
+  const [recentRecipients, setRecentRecipients] = useState<Recipient[]>([]);
+
+  useEffect(() => {
+    if (visible) {
+      loadRecipients().then(setRecentRecipients);
+    }
+  }, [visible]);
 
   const { mutate: sendMoney, isPending } = useSendMoney();
 
@@ -78,10 +112,14 @@ export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
   }, [validate]);
 
   const handleConfirm = useCallback(() => {
+    const trimmedEmail = email.trim().toLowerCase();
     sendMoney(
-      { data: { recipientEmail: email.trim().toLowerCase(), amount: parseFloat(amount), note } },
+      { data: { recipientEmail: trimmedEmail, amount: parseFloat(amount), note } },
       {
         onSuccess: () => {
+          saveRecipient(trimmedEmail).then(() => {
+            loadRecipients().then(setRecentRecipients);
+          });
           reset();
           onSuccess?.();
           onClose();
@@ -123,6 +161,37 @@ export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
 
             {step === "form" ? (
               <View style={styles.form}>
+                {recentRecipients.length > 0 && !email && (
+                  <View style={styles.recentSection}>
+                    <Text style={[styles.recentLabel, { color: colors.textSecondary }]}>Recent</Text>
+                    <FlatList
+                      horizontal
+                      data={recentRecipients}
+                      keyExtractor={(item) => item.email}
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.recentList}
+                      renderItem={({ item }) => (
+                        <Pressable
+                          style={[styles.recentChip, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                          onPress={() => {
+                            setEmail(item.email);
+                            setEmailError("");
+                          }}
+                        >
+                          <View style={[styles.recentAvatar, { backgroundColor: colors.tintLight }]}>
+                            <Text style={[styles.recentAvatarText, { color: colors.tint }]}>
+                              {item.email.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <Text style={[styles.recentEmail, { color: colors.text }]} numberOfLines={1}>
+                            {item.email.split("@")[0]}
+                          </Text>
+                        </Pressable>
+                      )}
+                    />
+                  </View>
+                )}
+
                 <View style={styles.field}>
                   <Text style={[styles.label, { color: colors.textSecondary }]}>Recipient Email</Text>
                   <View style={[styles.inputRow, {
@@ -139,6 +208,11 @@ export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
                       autoCapitalize="none"
                       style={[styles.input, { color: colors.text }]}
                     />
+                    {email.length > 0 && (
+                      <Pressable onPress={() => setEmail("")}>
+                        <Feather name="x-circle" size={16} color={colors.textSecondary} />
+                      </Pressable>
+                    )}
                   </View>
                   {emailError ? <Text style={[styles.errorText, { color: colors.error }]}>{emailError}</Text> : null}
                 </View>
@@ -262,6 +336,13 @@ const styles = StyleSheet.create({
   title: { fontFamily: "Inter_700Bold", fontSize: 20 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   form: { gap: 0 },
+  recentSection: { marginBottom: 12 },
+  recentLabel: { fontFamily: "Inter_500Medium", fontSize: 12, marginBottom: 8 },
+  recentList: { gap: 8, paddingRight: 4 },
+  recentChip: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 8, minWidth: 80 },
+  recentAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  recentAvatarText: { fontFamily: "Inter_700Bold", fontSize: 12 },
+  recentEmail: { fontFamily: "Inter_500Medium", fontSize: 13, maxWidth: 80 },
   field: { marginBottom: 16 },
   label: { fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 6 },
   inputRow: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 12, paddingHorizontal: 14, borderWidth: 1, minHeight: 50 },

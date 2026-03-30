@@ -7,11 +7,17 @@ import { logger } from "./lib/logger.js";
 
 const app: Express = express();
 
-const allowedOrigin = process.env["ALLOWED_ORIGIN"] ?? "*";
+const isProd = process.env["NODE_ENV"] === "production";
+const allowedOrigin = process.env["ALLOWED_ORIGIN"];
+
+if (isProd && !allowedOrigin) {
+  logger.fatal("ALLOWED_ORIGIN env var is required in production. Refusing to start.");
+  process.exit(1);
+}
 
 app.use(
   cors({
-    origin: allowedOrigin === "*" ? true : allowedOrigin,
+    origin: allowedOrigin ?? true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -50,8 +56,8 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use("/api", router);
 
-app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  (req as any).log?.error({ err }, "Unhandled error");
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error({ err }, "Unhandled error");
   res.status(500).json({ error: "InternalError", message: "Something went wrong" });
 });
 

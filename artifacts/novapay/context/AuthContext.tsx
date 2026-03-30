@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { router } from "expo-router";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import type { UserProfile } from "@workspace/api-client-react";
 
 const TOKEN_KEY = "novapay_token";
 const USER_KEY = "novapay_user";
@@ -30,24 +31,15 @@ async function secureDelete(key: string) {
   }
 }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone?: string | null;
-  avatarUrl?: string | null;
-  kycStatus: "pending" | "submitted" | "approved" | "rejected";
-  createdAt: string;
-}
+export type { UserProfile as AuthUser };
 
 interface AuthContextValue {
-  user: AuthUser | null;
+  user: UserProfile | null;
   token: string | null;
   isLoading: boolean;
-  login: (token: string, user: AuthUser) => Promise<void>;
+  login: (token: string, user: UserProfile) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (user: AuthUser) => void;
+  updateUser: (user: UserProfile) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,7 +47,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 let _currentToken: string | null = null;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -74,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         secureGet(USER_KEY),
       ]);
       if (storedToken && storedUser) {
-        const parsedUser = JSON.parse(storedUser) as AuthUser;
+        const parsedUser = JSON.parse(storedUser) as UserProfile;
         setToken(storedToken);
         setUser(parsedUser);
         _currentToken = storedToken;
@@ -85,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = useCallback(async (newToken: string, newUser: AuthUser) => {
+  const login = useCallback(async (newToken: string, newUser: UserProfile) => {
     await Promise.all([
       secureSet(TOKEN_KEY, newToken),
       secureSet(USER_KEY, JSON.stringify(newUser)),
@@ -103,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace("/(auth)/login");
   }, []);
 
-  const updateUser = useCallback((updatedUser: AuthUser) => {
+  const updateUser = useCallback((updatedUser: UserProfile) => {
     setUser(updatedUser);
     secureSet(USER_KEY, JSON.stringify(updatedUser)).catch(() => {});
   }, []);

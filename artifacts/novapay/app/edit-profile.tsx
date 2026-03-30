@@ -68,7 +68,7 @@ export default function EditProfileScreen() {
       },
       {
         onSuccess: (updated) => {
-          updateUser(updated as never);
+          updateUser(updated);
           queryClient.invalidateQueries({ queryKey: getGetUserProfileQueryKey() });
           Alert.alert("Success", "Profile updated successfully.");
           router.back();

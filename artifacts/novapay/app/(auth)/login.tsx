@@ -56,7 +56,7 @@ export default function LoginScreen() {
       { data: { email: email.trim().toLowerCase(), password } },
       {
         onSuccess: (data) => {
-          login(data.token, data.user as never);
+          login(data.token, data.user);
           router.replace("/(tabs)");
         },
         onError: (err: unknown) => {

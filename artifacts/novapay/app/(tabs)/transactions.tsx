@@ -1,4 +1,4 @@
-import React, { useCallback, useState, memo } from "react";
+import React, { useCallback, useEffect, useState, memo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -37,16 +37,22 @@ const ICON_MAP: Record<string, keyof typeof Feather.glyphMap> = {
   send: "arrow-up-right",
   receive: "arrow-down-left",
   topup: "plus-circle",
+  deposit: "plus-circle",
   withdrawal: "arrow-down",
   card_payment: "credit-card",
+  credit: "arrow-down-left",
+  debit: "arrow-up-right",
 };
 
-const COLOR_MAP = {
+const COLOR_MAP: Record<string, string> = {
   send: "#EF4444",
   receive: "#10B981",
   topup: "#3B82F6",
+  deposit: "#3B82F6",
   withdrawal: "#F59E0B",
   card_payment: "#8B5CF6",
+  credit: "#10B981",
+  debit: "#EF4444",
 };
 
 function TransactionDetailModal({ tx, onClose, colors }: {
@@ -55,9 +61,9 @@ function TransactionDetailModal({ tx, onClose, colors }: {
   colors: typeof Colors.light;
 }) {
   if (!tx) return null;
-  const isCredit = ["receive", "topup"].includes(tx.type);
+  const isCredit = ["receive", "topup", "deposit", "credit"].includes(tx.type);
   const iconName = ICON_MAP[tx.type] ?? "activity";
-  const iconColor = COLOR_MAP[tx.type as keyof typeof COLOR_MAP] ?? colors.tint;
+  const iconColor = COLOR_MAP[tx.type] ?? colors.tint;
 
   const dateStr = new Date(tx.createdAt).toLocaleString("en-US", {
     year: "numeric",
@@ -66,6 +72,10 @@ function TransactionDetailModal({ tx, onClose, colors }: {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const statusColor =
+    tx.status === "completed" ? colors.success :
+    tx.status === "failed" ? colors.error : colors.warning;
 
   return (
     <Modal visible={!!tx} animationType="slide" transparent presentationStyle="overFullScreen">
@@ -82,27 +92,21 @@ function TransactionDetailModal({ tx, onClose, colors }: {
             {isCredit ? "+" : "-"}{tx.currency}{Math.abs(tx.amount).toFixed(2)}
           </Text>
           <Text style={[dtStyles.desc, { color: colors.textSecondary }]}>
-            {tx.description || tx.type.replace(/_/g, " ")}
+            {tx.description ?? tx.type.replace(/_/g, " ")}
           </Text>
 
           <View style={[dtStyles.divider, { backgroundColor: colors.border }]} />
 
           <View style={dtStyles.rows}>
-            <Row label="Status" value={tx.status.toUpperCase()} valueColor={
-              tx.status === "completed" ? colors.success :
-              tx.status === "failed" ? colors.error : colors.warning
-            } colors={colors} />
-            <Row label="Type" value={tx.type.replace(/_/g, " ")} colors={colors} />
-            {tx.counterpartyName && <Row label="Recipient" value={tx.counterpartyName} colors={colors} />}
-            {tx.counterpartyEmail && <Row label="Email" value={tx.counterpartyEmail} colors={colors} />}
-            <Row label="Date" value={dateStr} colors={colors} />
-            <Row label="Transaction ID" value={tx.id.slice(0, 16) + "..."} colors={colors} />
+            <DetailRow label="Status" value={tx.status.toUpperCase()} valueColor={statusColor} colors={colors} />
+            <DetailRow label="Type" value={tx.type.replace(/_/g, " ")} colors={colors} />
+            {tx.counterpartyName ? <DetailRow label="Recipient" value={tx.counterpartyName} colors={colors} /> : null}
+            {tx.counterpartyEmail ? <DetailRow label="Email" value={tx.counterpartyEmail} colors={colors} /> : null}
+            <DetailRow label="Date" value={dateStr} colors={colors} />
+            <DetailRow label="Transaction ID" value={`${tx.id.slice(0, 16)}...`} colors={colors} />
           </View>
 
-          <Pressable
-            style={[dtStyles.closeBtn, { backgroundColor: colors.surfaceSecondary }]}
-            onPress={onClose}
-          >
+          <Pressable style={[dtStyles.closeBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={onClose}>
             <Text style={[dtStyles.closeBtnText, { color: colors.text }]}>Close</Text>
           </Pressable>
         </View>
@@ -111,7 +115,7 @@ function TransactionDetailModal({ tx, onClose, colors }: {
   );
 }
 
-function Row({ label, value, valueColor, colors }: {
+function DetailRow({ label, value, valueColor, colors }: {
   label: string;
   value: string;
   valueColor?: string;
@@ -177,26 +181,24 @@ export default function TransactionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTx, setSelectedTx] = useState<TxRecord | null>(null);
 
-  const { data, isLoading, isFetching } = useGetTransactions(
-    { page, limit: 20 },
-    {
-      query: {
-        onSuccess: (incoming: { transactions: TxRecord[]; hasMore?: boolean }) => {
-          if (page === 1) {
-            setAllTransactions(incoming.transactions);
-          } else {
-            setAllTransactions((prev) => {
-              const ids = new Set(prev.map((t) => t.id));
-              return [...prev, ...incoming.transactions.filter((t) => !ids.has(t.id))];
-            });
-          }
-        },
-      },
-    } as never
-  );
+  const { data, isLoading, isFetching, error, refetch } = useGetTransactions({ page, limit: 20 });
+
+  useEffect(() => {
+    if (!data) return;
+    const incoming = data.transactions as TxRecord[];
+    if (page === 1) {
+      setAllTransactions(incoming);
+    } else {
+      setAllTransactions((prev) => {
+        const ids = new Set(prev.map((t) => t.id));
+        return [...prev, ...incoming.filter((t) => !ids.has(t.id))];
+      });
+    }
+  }, [data, page]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setAllTransactions([]);
     setPage(1);
     await queryClient.invalidateQueries({
       queryKey: getGetTransactionsQueryKey({ page: 1, limit: 20 }),
@@ -212,8 +214,6 @@ export default function TransactionsScreen() {
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
   const bottomPadding = (Platform.OS === "web" ? 34 : insets.bottom) + 90;
-
-  const transactions = allTransactions.length > 0 ? allTransactions : (data?.transactions ?? []);
 
   const renderFooter = () => {
     if (!isFetching || page === 1) return null;
@@ -235,18 +235,32 @@ export default function TransactionsScreen() {
         )}
       </View>
 
-      {isLoading && transactions.length === 0 ? (
+      {isLoading && allTransactions.length === 0 ? (
         <View style={[styles.skeletonList, { paddingHorizontal: 20 }]}>
           {Array.from({ length: 8 }).map((_, i) => (
             <SkeletonItem key={i} colors={colors} />
           ))}
         </View>
+      ) : error && allTransactions.length === 0 ? (
+        <View style={styles.errorState}>
+          <Feather name="alert-circle" size={44} color={colors.error} />
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Failed to load transactions</Text>
+          <Text style={[styles.errorSubtitle, { color: colors.textSecondary }]}>
+            Check your connection and try again
+          </Text>
+          <Pressable
+            style={[styles.retryBtn, { backgroundColor: colors.tint }]}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </Pressable>
+        </View>
       ) : (
         <FlatList
-          data={transactions}
+          data={allTransactions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <Pressable onPress={() => setSelectedTx(item as TxRecord)}>
+            <Pressable onPress={() => setSelectedTx(item)}>
               <TransactionItem transaction={item} />
             </Pressable>
           )}
@@ -290,4 +304,9 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17 },
   emptySubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center" },
   footerLoader: { paddingVertical: 16, alignItems: "center" },
+  errorState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 },
+  errorTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, textAlign: "center" },
+  errorSubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center" },
+  retryBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 4 },
+  retryBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#FFFFFF" },
 });

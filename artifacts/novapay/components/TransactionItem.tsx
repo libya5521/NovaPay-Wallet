@@ -23,6 +23,7 @@ const ICON_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; bg: str
   send: { icon: "arrow-up-right", bg: "#FEE2E2", color: "#EF4444" },
   receive: { icon: "arrow-down-left", bg: "#DCFCE7", color: "#10B981" },
   topup: { icon: "plus-circle", bg: "#DBEAFE", color: "#3B82F6" },
+  deposit: { icon: "plus-circle", bg: "#DBEAFE", color: "#3B82F6" },
   withdrawal: { icon: "arrow-down", bg: "#FEF9C3", color: "#F59E0B" },
   card_payment: { icon: "credit-card", bg: "#EDE9FE", color: "#8B5CF6" },
   credit: { icon: "arrow-down-left", bg: "#DCFCE7", color: "#10B981" },
@@ -35,7 +36,7 @@ export const TransactionItem = memo(function TransactionItem({ transaction }: Pr
   const colors = isDark ? Colors.dark : Colors.light;
 
   const cfg = ICON_CONFIG[transaction.type] ?? { icon: "activity" as const, bg: "#F1F5F9", color: "#64748B" };
-  const isCredit = ["receive", "topup", "credit"].includes(transaction.type);
+  const isCredit = ["receive", "topup", "deposit", "credit"].includes(transaction.type);
   const amount = `${isCredit ? "+" : "-"}$${Math.abs(transaction.amount).toFixed(2)}`;
   const amountColor = isCredit ? colors.success : colors.text;
 

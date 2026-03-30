@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   useColorScheme,
   View,
@@ -13,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import Constants from "expo-constants";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
 
@@ -192,7 +192,9 @@ export default function SettingsScreen() {
         destructive
       />
 
-      <Text style={[styles.version, { color: colors.textTertiary }]}>NovaPay v1.0.0</Text>
+      <Text style={[styles.version, { color: colors.textTertiary }]}>
+        NovaPay v{Constants.expoConfig?.version ?? "1.0.0"}
+      </Text>
     </ScrollView>
   );
 }
