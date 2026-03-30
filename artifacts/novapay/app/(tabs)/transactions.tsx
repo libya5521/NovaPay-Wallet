@@ -216,11 +216,22 @@ export default function TransactionsScreen() {
   const bottomPadding = (Platform.OS === "web" ? 34 : insets.bottom) + 90;
 
   const renderFooter = () => {
-    if (!isFetching || page === 1) return null;
+    if (!data?.hasMore) return null;
     return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={colors.tint} />
-      </View>
+      <Pressable
+        style={[styles.loadMoreBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+        onPress={loadMore}
+        disabled={isFetching && page > 1}
+      >
+        {isFetching && page > 1 ? (
+          <ActivityIndicator size="small" color={colors.tint} />
+        ) : (
+          <>
+            <Feather name="chevron-down" size={16} color={colors.tint} />
+            <Text style={[styles.loadMoreText, { color: colors.tint }]}>Load more</Text>
+          </>
+        )}
+      </Pressable>
     );
   };
 
@@ -268,8 +279,6 @@ export default function TransactionsScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
           }
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.3}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <View style={styles.emptyState}>
@@ -309,4 +318,16 @@ const styles = StyleSheet.create({
   errorSubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center" },
   retryBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 4 },
   retryBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#FFFFFF" },
+  loadMoreBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginVertical: 16,
+    marginHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  loadMoreText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
 });

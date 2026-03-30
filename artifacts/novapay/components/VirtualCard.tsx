@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
+import {
+  Alert,
+  Clipboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
@@ -19,6 +27,56 @@ function formatCardNumber(num: string): string {
   return clean.replace(/(.{4})/g, "$1 ").trim();
 }
 
+function RevealField({
+  label,
+  visible,
+  value,
+  masked,
+  onToggle,
+  onCopy,
+}: {
+  label: string;
+  visible: boolean;
+  value: string;
+  masked: string;
+  onToggle: () => void;
+  onCopy: () => void;
+}) {
+  return (
+    <View style={fieldStyles.wrapper}>
+      <Text style={fieldStyles.label}>{label}</Text>
+      <View style={fieldStyles.row}>
+        <Text style={fieldStyles.value}>{visible ? value : masked}</Text>
+        <Pressable onPress={onToggle} style={fieldStyles.icon} hitSlop={8}>
+          <Feather name={visible ? "eye-off" : "eye"} size={14} color="rgba(255,255,255,0.65)" />
+        </Pressable>
+        <Pressable onPress={onCopy} style={fieldStyles.icon} hitSlop={8}>
+          <Feather name="copy" size={14} color="rgba(255,255,255,0.65)" />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const fieldStyles = StyleSheet.create({
+  wrapper: { gap: 3 },
+  label: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  row: { flexDirection: "row", alignItems: "center", gap: 8 },
+  value: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.5,
+  },
+  icon: { padding: 2 },
+});
+
 export function VirtualCard({
   cardNumber,
   cardHolder,
@@ -30,11 +88,23 @@ export function VirtualCard({
 }: VirtualCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [showDetails, setShowDetails] = useState(false);
+  void isDark;
 
-  const maskedNumber = cardNumber.replace(/(\d{4})\s?(\d{4})\s?(\d{4})\s?(\d{4})/, "•••• •••• •••• $4");
-  const displayNumber = showDetails ? formatCardNumber(cardNumber) : maskedNumber;
-  const displayCvv = showDetails ? cvv : "•••";
+  const [showNumber, setShowNumber] = useState(false);
+  const [showExpiry, setShowExpiry] = useState(false);
+  const [showCvv, setShowCvv] = useState(false);
+
+  const cleanNumber = cardNumber.replace(/\s/g, "");
+  const formattedNumber = formatCardNumber(cleanNumber);
+  const maskedNumber = `•••• •••• •••• ${cleanNumber.slice(-4)}`;
+  const expiryFull = `${String(expiryMonth).padStart(2, "0")}/${String(expiryYear).slice(-2)}`;
+  const maskedExpiry = "••/••";
+  const maskedCvv = "•••";
+
+  const copyToClipboard = (text: string, label: string) => {
+    Clipboard.setString(text);
+    Alert.alert("Copied", `${label} copied to clipboard.`);
+  };
 
   return (
     <LinearGradient
@@ -53,26 +123,45 @@ export function VirtualCard({
         </View>
       </View>
 
-      <Text style={styles.cardNumber}>{displayNumber}</Text>
+      <View style={styles.numberRow}>
+        <Text style={styles.cardNumber}>{showNumber ? formattedNumber : maskedNumber}</Text>
+        <View style={styles.numberActions}>
+          <Pressable onPress={() => setShowNumber((v) => !v)} style={styles.iconBtn} hitSlop={8}>
+            <Feather name={showNumber ? "eye-off" : "eye"} size={16} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+          <Pressable
+            onPress={() => copyToClipboard(cleanNumber, "Card number")}
+            style={styles.iconBtn}
+            hitSlop={8}
+          >
+            <Feather name="copy" size={16} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+        </View>
+      </View>
 
       <View style={styles.cardBottom}>
         <View>
           <Text style={styles.cardLabel}>Card Holder</Text>
           <Text style={styles.cardValue}>{cardHolder.toUpperCase()}</Text>
         </View>
-        <View>
-          <Text style={styles.cardLabel}>Expires</Text>
-          <Text style={styles.cardValue}>
-            {String(expiryMonth).padStart(2, "0")}/{String(expiryYear).slice(-2)}
-          </Text>
-        </View>
-        <View>
-          <Text style={styles.cardLabel}>CVV</Text>
-          <Text style={styles.cardValue}>{displayCvv}</Text>
-        </View>
-        <Pressable onPress={() => setShowDetails((v) => !v)} style={styles.eyeBtn}>
-          <Feather name={showDetails ? "eye-off" : "eye"} size={16} color="rgba(255,255,255,0.7)" />
-        </Pressable>
+
+        <RevealField
+          label="Expires"
+          visible={showExpiry}
+          value={expiryFull}
+          masked={maskedExpiry}
+          onToggle={() => setShowExpiry((v) => !v)}
+          onCopy={() => copyToClipboard(expiryFull, "Expiry date")}
+        />
+
+        <RevealField
+          label="CVV"
+          visible={showCvv}
+          value={cvv}
+          masked={maskedCvv}
+          onToggle={() => setShowCvv((v) => !v)}
+          onCopy={() => copyToClipboard(cvv, "CVV")}
+        />
       </View>
 
       <View style={styles.cardTypeContainer}>
@@ -145,12 +234,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_500Medium",
   },
+  numberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
   cardNumber: {
     color: "#FFFFFF",
     fontSize: 18,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 2.5,
     textAlign: "center",
+  },
+  numberActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  iconBtn: {
+    padding: 4,
   },
   cardBottom: {
     flexDirection: "row",
@@ -170,10 +272,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 0.5,
-  },
-  eyeBtn: {
-    padding: 4,
-    marginLeft: "auto",
   },
   cardTypeContainer: {
     position: "absolute",

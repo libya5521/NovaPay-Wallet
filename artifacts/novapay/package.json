@@ -56,6 +56,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@react-navigation/bottom-tabs": "^7.15.9",
     "babel-preset-expo": "^54.0.10",
     "expo-clipboard": "^55.0.9",
     "expo-secure-store": "^55.0.9"

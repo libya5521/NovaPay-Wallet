@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import Colors from "@/constants/colors";
 
 const TAB_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
@@ -112,8 +113,7 @@ function TabPill({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function FloatingTabBar({ state, descriptors, navigation }: any) {
+export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = isDark ? Colors.dark : Colors.light;
@@ -139,8 +139,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
         />
       )}
       <View style={styles.inner}>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {state.routes.map((route: any, index: number) => {
+        {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const onPress = () => {
             const event = navigation.emit({

@@ -10,20 +10,18 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
-  getGetKycStatusQueryKey,
   useGetKycStatus,
   useGetUserProfile,
-  useSubmitKyc,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
+import { KycFormModal } from "@/components/KycFormModal";
 import { useAuth } from "@/context/AuthContext";
-import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
-import { useQueryClient } from "@tanstack/react-query";
 
 function KycBadge({ status, colors }: { status: string; colors: typeof Colors.light }) {
   const config: Record<string, { color: string; bg: string; icon: keyof typeof Feather.glyphMap; label: string }> = {
@@ -79,54 +77,13 @@ export default function ProfileScreen() {
   const colors = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data: profile, isLoading: profileLoading } = useGetUserProfile();
   const { data: kyc, isLoading: kycLoading } = useGetKycStatus();
-  const { mutate: submitKyc, isPending: kycPending } = useSubmitKyc();
-  const { getError } = useApiError();
   const [kycSubmitted, setKycSubmitted] = useState(false);
+  const [showKycForm, setShowKycForm] = useState(false);
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
-
-  const handleStartKyc = () => {
-    Alert.alert(
-      "Identity Verification",
-      "Submit your identity documents to unlock higher transfer limits and full account features.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Start Verification",
-          onPress: () => {
-            submitKyc(
-              {
-                data: {
-                  fullName: profile ? `${profile.firstName} ${profile.lastName}` : "",
-                  dateOfBirth: "1990-01-01",
-                  nationality: "US",
-                  documentType: "passport",
-                  documentNumber: "P123456789",
-                  addressLine1: "123 Main St",
-                  city: "New York",
-                  country: "US",
-                },
-              },
-              {
-                onSuccess: () => {
-                  setKycSubmitted(true);
-                  queryClient.invalidateQueries({ queryKey: getGetKycStatusQueryKey() });
-                  Alert.alert("Verification Submitted", "Your documents are under review. We'll notify you within 24–48 hours.");
-                },
-                onError: (err: unknown) => {
-                  Alert.alert("Verification Failed", getError(err));
-                },
-              }
-            );
-          },
-        },
-      ]
-    );
-  };
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -219,13 +176,23 @@ export default function ProfileScreen() {
           {kycStatus === "pending" && !kycSubmitted && (
             <View style={styles.kycCta}>
               <Text style={[styles.kycCtaText, { color: colors.textSecondary }]}>
-                Complete verification to unlock higher limits and full features.
+                Complete verification to unlock higher transfer limits and full account features.
               </Text>
               <Button
                 title="Start Verification"
-                onPress={handleStartKyc}
-                loading={kycPending}
+                onPress={() => setShowKycForm(true)}
                 size="sm"
+              />
+            </View>
+          )}
+
+          {kycStatus === "rejected" && (
+            <View style={styles.kycCta}>
+              <Button
+                title="Resubmit Verification"
+                onPress={() => setShowKycForm(true)}
+                size="sm"
+                variant="secondary"
               />
             </View>
           )}
@@ -258,6 +225,13 @@ export default function ProfileScreen() {
       </View>
 
       <Button title="Sign Out" onPress={handleLogout} variant="danger" fullWidth testID="logout-btn" />
+
+      <KycFormModal
+        visible={showKycForm}
+        prefillName={profile ? `${profile.firstName} ${profile.lastName}` : ""}
+        onClose={() => setShowKycForm(false)}
+        onSuccess={() => setKycSubmitted(true)}
+      />
     </ScrollView>
   );
 }
