@@ -18,25 +18,29 @@ import { Feather } from "@expo/vector-icons";
 
 export interface VirtualCardProps {
   /** Last 4 digits only — e.g. "4321".  Full PAN is never accepted. */
-  maskedNumber: string;
-  cardHolder: string;
-  /** ISO "YYYY-MM" expiry string returned by the API */
-  expiresAt: string;
-  cardType: "visa" | "mastercard";
+  maskedNumber?: string | null;
+  cardHolder?: string | null;
+  /** ISO "YYYY-MM" expiry string returned by the API. May be undefined while loading. */
+  expiresAt?: string | null;
+  cardType?: "visa" | "mastercard";
   isActive: boolean;
 }
 
 // ── Formatted display values ─────────────────────────────────────────────────
 
-function formatMaskedPan(last4: string) {
+function formatMaskedPan(last4?: string | null) {
+  if (!last4) return "•••• •••• •••• ••••";
   return `•••• •••• •••• ${last4}`;
 }
 
-function formatExpiry(expiresAt: string) {
-  // expiresAt is "YYYY-MM" — convert to "MM/YY"
+function formatExpiry(expiresAt?: string | null): string {
+  if (!expiresAt) return "••/••";
+  // Handle both "YYYY-MM" (our format) and full ISO strings e.g. "2028-06-01T00:00:00.000Z"
   const parts = expiresAt.split("-");
   if (parts.length >= 2) {
-    return `${parts[1]}/${parts[0]?.slice(-2)}`;
+    const month = parts[1]?.slice(0, 2) ?? "••";
+    const year = parts[0]?.slice(-2) ?? "••";
+    return `${month}/${year}`;
   }
   return expiresAt;
 }
@@ -144,7 +148,7 @@ export function VirtualCard({
       <View style={styles.cardBottom}>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardLabel}>Card Holder</Text>
-          <Text style={styles.cardValue} numberOfLines={1}>{cardHolder.toUpperCase()}</Text>
+          <Text style={styles.cardValue} numberOfLines={1}>{(cardHolder ?? "—").toUpperCase()}</Text>
         </View>
 
         <RevealField

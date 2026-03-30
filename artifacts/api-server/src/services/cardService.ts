@@ -5,8 +5,9 @@
 //   • token        — opaque surrogate reference
 //   • expiresAt    — card expiry timestamp
 //
-import { db, virtualCardsTable } from "@workspace/db";
+import { db, usersTable, virtualCardsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { generateCardToken } from "../lib/crypto.js";
 
 export interface CardDetails {
   id: string;
@@ -38,15 +39,42 @@ function toCardDetails(card: {
   };
 }
 
-export async function getVirtualCard(userId: string): Promise<CardDetails> {
+async function provisionCard(userId: string): Promise<typeof virtualCardsTable.$inferSelect> {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  const cardHolder = user
+    ? `${(user.firstName ?? "").toUpperCase()} ${(user.lastName ?? "").toUpperCase()}`.trim()
+    : "CARD HOLDER";
+
+  const last4 = String(Math.floor(1000 + Math.random() * 9000));
+  const expiresAt = new Date();
+  expiresAt.setUTCFullYear(expiresAt.getUTCFullYear() + 4);
+
   const [card] = await db
+    .insert(virtualCardsTable)
+    .values({
+      userId,
+      maskedNumber: last4,
+      token: generateCardToken(),
+      cardHolder,
+      expiresAt,
+      cardType: "visa",
+      isActive: true,
+    })
+    .returning();
+
+  return card;
+}
+
+export async function getVirtualCard(userId: string): Promise<CardDetails> {
+  let [card] = await db
     .select()
     .from(virtualCardsTable)
     .where(eq(virtualCardsTable.userId, userId))
     .limit(1);
 
+  // Auto-provision a card for users who pre-date the secure schema
   if (!card) {
-    throw Object.assign(new Error("Card not found"), { code: "CARD_NOT_FOUND" });
+    card = await provisionCard(userId);
   }
 
   return toCardDetails(card);
