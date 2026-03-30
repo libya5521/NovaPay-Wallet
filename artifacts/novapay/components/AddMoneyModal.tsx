@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { useAddMoney } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 const QUICK_AMOUNTS = [50, 100, 200, 500];
@@ -33,6 +34,7 @@ export function AddMoneyModal({ visible, onClose, onSuccess }: Props) {
   const [amountError, setAmountError] = useState("");
 
   const { mutate: addMoney, isPending } = useAddMoney();
+  const { getError } = useApiError();
 
   const handleClose = useCallback(() => {
     setAmount("");
@@ -65,12 +67,11 @@ export function AddMoneyModal({ visible, onClose, onSuccess }: Props) {
           onSuccess?.();
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          Alert.alert("Failed", e?.message ?? "Could not add money. Try again.");
+          Alert.alert("Failed", getError(err));
         },
       }
     );
-  }, [amount, validate, addMoney, handleClose, onSuccess]);
+  }, [amount, validate, addMoney, handleClose, onSuccess, getError]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">

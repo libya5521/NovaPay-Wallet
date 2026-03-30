@@ -68,7 +68,7 @@ export default function HomeScreen() {
         styles.container,
         {
           paddingTop: topPadding,
-          paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 90,
+          paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 100,
         },
       ]}
       refreshControl={
@@ -98,11 +98,14 @@ export default function HomeScreen() {
         />
       ) : null}
 
-      <View style={[styles.section, styles.quickActionsRow]}>
+      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Quick Actions</Text>
+      <View style={styles.quickActionsGrid}>
         <QuickAction icon="send" label="Send" onPress={() => setSendVisible(true)} testID="send-btn" />
-        <QuickAction icon="plus-circle" label="Add" onPress={() => setAddVisible(true)} color="#10B981" />
+        <QuickAction icon="plus-circle" label="Add Money" onPress={() => setAddVisible(true)} color="#10B981" />
         <QuickAction icon="arrow-down-circle" label="Withdraw" onPress={() => setWithdrawVisible(true)} color="#8B5CF6" />
-        <QuickAction icon="list" label="Activity" onPress={() => router.push("/(tabs)/transactions")} color="#F59E0B" />
+        <QuickAction icon="credit-card" label="Card" onPress={() => router.push("/(tabs)/card")} color="#3B82F6" />
+        <QuickAction icon="shield" label="KYC" onPress={() => router.push("/(tabs)/profile")} color="#F59E0B" />
+        <QuickAction icon="activity" label="Activity" onPress={() => router.push("/(tabs)/transactions")} color="#EF4444" />
       </View>
 
       <View style={styles.section}>
@@ -175,13 +178,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 24,
   },
-  section: { marginBottom: 24 },
-  quickActionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
-    marginBottom: 8,
+  sectionLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: 20,
+    marginBottom: 12,
   },
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 24,
+    gap: 12,
+  },
+  section: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

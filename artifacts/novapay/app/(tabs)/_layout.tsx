@@ -1,12 +1,10 @@
-import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
-import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
-import Colors from "@/constants/colors";
+import { Platform } from "react-native";
+import { FloatingTabBar } from "@/components/FloatingTabBar";
 
 function NativeTabLayout() {
   return (
@@ -35,46 +33,12 @@ function NativeTabLayout() {
   );
 }
 
-function ClassicTabLayout() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const isIOS = Platform.OS === "ios";
-  const isWeb = Platform.OS === "web";
-  const colors = isDark ? Colors.dark : Colors.light;
-
+function FloatingTabLayout() {
   return (
     <Tabs
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
-        tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : isDark ? "#0B1120" : "#fff",
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
-        },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: isDark ? "#0B1120" : "#fff" },
-              ]}
-            />
-          ) : null,
-        tabBarLabelStyle: {
-          fontFamily: "Inter_500Medium",
-          fontSize: 11,
-        },
       }}
     >
       <Tabs.Screen
@@ -82,11 +46,9 @@ function ClassicTabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
+            Platform.OS === "ios" ? (
               <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+            ) : undefined,
         }}
       />
       <Tabs.Screen
@@ -94,11 +56,9 @@ function ClassicTabLayout() {
         options={{
           title: "Card",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
+            Platform.OS === "ios" ? (
               <SymbolView name="creditcard" tintColor={color} size={24} />
-            ) : (
-              <Feather name="credit-card" size={22} color={color} />
-            ),
+            ) : undefined,
         }}
       />
       <Tabs.Screen
@@ -106,11 +66,9 @@ function ClassicTabLayout() {
         options={{
           title: "Activity",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
+            Platform.OS === "ios" ? (
               <SymbolView name="list.bullet" tintColor={color} size={24} />
-            ) : (
-              <Feather name="list" size={22} color={color} />
-            ),
+            ) : undefined,
         }}
       />
       <Tabs.Screen
@@ -118,11 +76,9 @@ function ClassicTabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
+            Platform.OS === "ios" ? (
               <SymbolView name="person" tintColor={color} size={24} />
-            ) : (
-              <Feather name="user" size={22} color={color} />
-            ),
+            ) : undefined,
         }}
       />
       <Tabs.Screen
@@ -130,11 +86,9 @@ function ClassicTabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
+            Platform.OS === "ios" ? (
               <SymbolView name="gearshape" tintColor={color} size={24} />
-            ) : (
-              <Feather name="settings" size={22} color={color} />
-            ),
+            ) : undefined,
         }}
       />
     </Tabs>
@@ -145,5 +99,5 @@ export default function TabLayout() {
   if (isLiquidGlassAvailable()) {
     return <NativeTabLayout />;
   }
-  return <ClassicTabLayout />;
+  return <FloatingTabLayout />;
 }

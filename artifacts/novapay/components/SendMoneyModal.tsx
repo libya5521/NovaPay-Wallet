@@ -16,6 +16,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useSendMoney } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 const RECIPIENTS_STORAGE_KEY = "novapay_recent_recipients";
@@ -71,6 +72,7 @@ export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
   }, [visible]);
 
   const { mutate: sendMoney, isPending } = useSendMoney();
+  const { getError } = useApiError();
 
   const reset = useCallback(() => {
     setStep("form");
@@ -125,12 +127,11 @@ export function SendMoneyModal({ visible, onClose, onSuccess }: Props) {
           onClose();
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          Alert.alert("Transfer Failed", e?.message ?? "Something went wrong. Please try again.");
+          Alert.alert("Transfer Failed", getError(err));
         },
       }
     );
-  }, [email, amount, note, sendMoney, reset, onSuccess, onClose]);
+  }, [email, amount, note, sendMoney, reset, onSuccess, onClose, getError]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">

@@ -20,6 +20,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { VirtualCard } from "@/components/VirtualCard";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 function CardFeatureRow({ icon, title, description, colors }: {
@@ -60,6 +61,7 @@ export default function CardScreen() {
   const { mutate: freezeCard, isPending: freezing } = useFreezeCard();
   const { mutate: unfreezeCard, isPending: unfreezing } = useUnfreezeCard();
   const [toggling, setToggling] = useState(false);
+  const { getError } = useApiError();
 
   const isFrozen = card ? !card.isActive : false;
   const actionPending = freezing || unfreezing || toggling;
@@ -76,8 +78,7 @@ export default function CardScreen() {
           setToggling(false);
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          Alert.alert("Error", e?.message ?? "Could not unfreeze card.");
+          Alert.alert("Error", getError(err));
           setToggling(false);
         },
       });
@@ -97,8 +98,7 @@ export default function CardScreen() {
                   setToggling(false);
                 },
                 onError: (err: unknown) => {
-                  const e = err as { message?: string };
-                  Alert.alert("Error", e?.message ?? "Could not freeze card.");
+                  Alert.alert("Error", getError(err));
                   setToggling(false);
                 },
               });
@@ -206,12 +206,6 @@ export default function CardScreen() {
         />
       </View>
 
-      <View style={[styles.integrationNote, { backgroundColor: colors.tintLight, borderColor: colors.tintLight }]}>
-        <Feather name="info" size={15} color={colors.tint} />
-        <Text style={[styles.integrationText, { color: colors.tint }]}>
-          Card issuing powered by Wallester. Connect your Wallester account in Settings to issue real cards.
-        </Text>
-      </View>
     </ScrollView>
   );
 }
@@ -253,18 +247,4 @@ const styles = StyleSheet.create({
   freezeDesc: { fontFamily: "Inter_400Regular", fontSize: 12 },
   section: { marginBottom: 24 },
   sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, marginBottom: 12 },
-  integrationNote: {
-    flexDirection: "row",
-    gap: 10,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "flex-start",
-    marginBottom: 16,
-  },
-  integrationText: {
-    flex: 1,
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    lineHeight: 18,
-  },
 });

@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { useWithdrawMoney } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 interface Props {
@@ -33,6 +34,7 @@ export function WithdrawModal({ visible, balance, currency, onClose, onSuccess }
   const [amountError, setAmountError] = useState("");
 
   const { mutate: withdraw, isPending } = useWithdrawMoney();
+  const { getError } = useApiError();
 
   const handleClose = useCallback(() => {
     setAmount("");
@@ -65,12 +67,11 @@ export function WithdrawModal({ visible, balance, currency, onClose, onSuccess }
           onSuccess?.();
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          Alert.alert("Failed", e?.message ?? "Withdrawal failed. Try again.");
+          Alert.alert("Failed", getError(err));
         },
       }
     );
-  }, [amount, validate, withdraw, handleClose, onSuccess, currency]);
+  }, [amount, validate, withdraw, handleClose, onSuccess, currency, getError]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">

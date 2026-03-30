@@ -17,7 +17,7 @@ export const QuickAction = memo(function QuickAction({ icon, label, onPress, col
   const isDark = colorScheme === "dark";
   const colors = isDark ? Colors.dark : Colors.light;
   const iconColor = color ?? colors.tint;
-  const bgColor = isDark ? colors.surfaceSecondary : colors.tintLight;
+  const bgColor = isDark ? colors.surfaceSecondary : "#F1F5F9";
 
   return (
     <Pressable
@@ -29,15 +29,27 @@ export const QuickAction = memo(function QuickAction({ icon, label, onPress, col
       style={({ pressed }) => [styles.container, { opacity: pressed ? 0.75 : 1 }]}
     >
       <View style={[styles.iconBox, { backgroundColor: bgColor }]}>
-        <Feather name={icon} size={22} color={iconColor} />
+        <Feather name={icon} size={20} color={iconColor} />
       </View>
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 });
 
+const ITEM_WIDTH = "30%";
+
 const styles = StyleSheet.create({
-  container: { alignItems: "center", gap: 8, flex: 1 },
-  iconBox: { width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  label: { fontFamily: "Inter_500Medium", fontSize: 12 },
+  container: {
+    alignItems: "center",
+    gap: 8,
+    width: ITEM_WIDTH,
+  },
+  iconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  label: { fontFamily: "Inter_500Medium", fontSize: 11, textAlign: "center" },
 });

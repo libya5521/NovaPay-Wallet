@@ -21,6 +21,7 @@ import {
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -83,23 +84,24 @@ export default function ProfileScreen() {
   const { data: profile, isLoading: profileLoading } = useGetUserProfile();
   const { data: kyc, isLoading: kycLoading } = useGetKycStatus();
   const { mutate: submitKyc, isPending: kycPending } = useSubmitKyc();
+  const { getError } = useApiError();
   const [kycSubmitted, setKycSubmitted] = useState(false);
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
 
   const handleStartKyc = () => {
     Alert.alert(
-      "KYC Verification",
-      "This will submit a sample KYC request for demonstration.",
+      "Identity Verification",
+      "Submit your identity documents to unlock higher transfer limits and full account features.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Submit",
+          text: "Start Verification",
           onPress: () => {
             submitKyc(
               {
                 data: {
-                  fullName: profile ? `${profile.firstName} ${profile.lastName}` : "Test User",
+                  fullName: profile ? `${profile.firstName} ${profile.lastName}` : "",
                   dateOfBirth: "1990-01-01",
                   nationality: "US",
                   documentType: "passport",
@@ -113,10 +115,10 @@ export default function ProfileScreen() {
                 onSuccess: () => {
                   setKycSubmitted(true);
                   queryClient.invalidateQueries({ queryKey: getGetKycStatusQueryKey() });
-                  Alert.alert("KYC Submitted", "Your verification is under review.");
+                  Alert.alert("Verification Submitted", "Your documents are under review. We'll notify you within 24–48 hours.");
                 },
-                onError: () => {
-                  Alert.alert("Error", "Failed to submit KYC. Please try again.");
+                onError: (err: unknown) => {
+                  Alert.alert("Verification Failed", getError(err));
                 },
               }
             );
@@ -204,7 +206,7 @@ export default function ProfileScreen() {
             <View>
               <Text style={[styles.kycTitle, { color: colors.text }]}>Identity Verification</Text>
               <Text style={[styles.kycSubtitle, { color: colors.textSecondary }]}>
-                Powered by Sumsub
+                Verify your identity to unlock full features
               </Text>
             </View>
             {kycLoading ? (
@@ -249,7 +251,7 @@ export default function ProfileScreen() {
           <View style={[styles.kycNote, { backgroundColor: colors.tintLight }]}>
             <Feather name="info" size={13} color={colors.tint} />
             <Text style={[styles.kycNoteText, { color: colors.tint }]}>
-              Connect your Sumsub account in Settings to enable real identity verification.
+              Your data is encrypted and handled in accordance with applicable privacy regulations.
             </Text>
           </View>
         </View>

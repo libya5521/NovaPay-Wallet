@@ -1,10 +1,13 @@
-import React, { useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   useColorScheme,
   View,
@@ -15,6 +18,9 @@ import { router } from "expo-router";
 import Constants from "expo-constants";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+
+const NOTIF_KEY = "novapay_push_notifications";
+const LANG_KEY = "novapay_language";
 
 function SettingRow({
   icon,
@@ -40,7 +46,7 @@ function SettingRow({
       onPress={onPress}
       style={({ pressed }) => [
         rowStyles.container,
-        { backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 },
+        { backgroundColor: colors.surface, opacity: pressed && !!onPress ? 0.7 : 1 },
       ]}
     >
       <View style={[rowStyles.iconBox, {
@@ -76,12 +82,46 @@ function SectionTitle({ title, colors }: { title: string; colors: typeof Colors.
 }
 const sectionStyles = StyleSheet.create({ title: { fontFamily: "Inter_600SemiBold", fontSize: 12, letterSpacing: 0.8, marginBottom: 8, marginTop: 8, textTransform: "uppercase" } });
 
+const LANGUAGES = ["English", "French", "Spanish", "German", "Arabic"] as const;
+type Language = (typeof LANGUAGES)[number];
+
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
+
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [language, setLanguage] = useState<Language>("English");
+
+  useEffect(() => {
+    AsyncStorage.getItem(NOTIF_KEY).then((v) => {
+      if (v !== null) setPushEnabled(v === "true");
+    });
+    AsyncStorage.getItem(LANG_KEY).then((v) => {
+      if (v && LANGUAGES.includes(v as Language)) setLanguage(v as Language);
+    });
+  }, []);
+
+  const togglePush = useCallback((val: boolean) => {
+    setPushEnabled(val);
+    AsyncStorage.setItem(NOTIF_KEY, String(val));
+  }, []);
+
+  const handleLanguage = useCallback(() => {
+    const options = LANGUAGES.map((lang) => ({
+      text: lang,
+      onPress: () => {
+        setLanguage(lang);
+        AsyncStorage.setItem(LANG_KEY, lang);
+      },
+    }));
+    Alert.alert("Select Language", undefined, [
+      ...options,
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, []);
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
 
@@ -98,9 +138,19 @@ export default function SettingsScreen() {
       "This will permanently delete your account and all data. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => Alert.alert("Contact Support", "Please contact support@novapay.app to delete your account.") },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => Linking.openURL("mailto:support@novapay.app?subject=Delete Account Request"),
+        },
       ]
     );
+  }, []);
+
+  const openUrl = useCallback((url: string) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert("Error", "Could not open link. Please try again.");
+    });
   }, []);
 
   return (
@@ -108,7 +158,7 @@ export default function SettingsScreen() {
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.container,
-        { paddingTop: topPadding, paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 90 },
+        { paddingTop: topPadding, paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 100 },
       ]}
       showsVerticalScrollIndicator={false}
     >
@@ -126,31 +176,31 @@ export default function SettingsScreen() {
       <SettingRow
         icon="shield"
         label="Security"
-        subtitle="Password, 2FA, biometrics"
-        onPress={() => Alert.alert("Coming Soon", "Security settings coming in a future update.")}
-        colors={colors}
-      />
-      <SettingRow
-        icon="bell"
-        label="Notifications"
-        subtitle="Push, email preferences"
-        onPress={() => Alert.alert("Coming Soon", "Notification settings coming in a future update.")}
+        subtitle="Password & two-factor auth"
+        onPress={() => Alert.alert("Security", "Enhanced security settings will be available in a future update.")}
         colors={colors}
       />
 
-      <SectionTitle title="Integrations" colors={colors} />
+      <SectionTitle title="Preferences" colors={colors} />
       <SettingRow
-        icon="credit-card"
-        label="Wallester"
-        subtitle="Card issuing — not connected"
-        onPress={() => Alert.alert("Wallester", "To issue real cards, connect your Wallester account. This is a placeholder for the Wallester API integration.")}
+        icon="bell"
+        label="Push Notifications"
+        subtitle="Transaction alerts and updates"
         colors={colors}
+        rightNode={
+          <Switch
+            value={pushEnabled}
+            onValueChange={togglePush}
+            trackColor={{ false: colors.border, true: colors.tint }}
+            thumbColor="#FFFFFF"
+          />
+        }
       />
       <SettingRow
-        icon="user-check"
-        label="Sumsub KYC"
-        subtitle="Identity verification — not connected"
-        onPress={() => Alert.alert("Sumsub", "To run real KYC flows, connect your Sumsub account. This is a placeholder for the Sumsub API integration.")}
+        icon="globe"
+        label="Language"
+        subtitle={language}
+        onPress={handleLanguage}
         colors={colors}
       />
 
@@ -158,20 +208,20 @@ export default function SettingsScreen() {
       <SettingRow
         icon="help-circle"
         label="Help & Support"
-        subtitle="FAQs, contact us"
-        onPress={() => Alert.alert("Support", "Email us at support@novapay.app")}
+        subtitle="FAQs and contact"
+        onPress={() => openUrl("mailto:support@novapay.app")}
         colors={colors}
       />
       <SettingRow
         icon="file-text"
         label="Terms of Service"
-        onPress={() => Alert.alert("Terms", "Terms of Service coming soon.")}
+        onPress={() => openUrl("https://novapay.app/terms")}
         colors={colors}
       />
       <SettingRow
         icon="lock"
         label="Privacy Policy"
-        onPress={() => Alert.alert("Privacy", "Privacy Policy coming soon.")}
+        onPress={() => openUrl("https://novapay.app/privacy")}
         colors={colors}
       />
 

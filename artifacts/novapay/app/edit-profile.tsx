@@ -22,6 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 export default function EditProfileScreen() {
@@ -30,6 +31,7 @@ export default function EditProfileScreen() {
   const colors = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const { updateUser } = useAuth();
+  const { getError } = useApiError();
   const queryClient = useQueryClient();
 
   const { data: profile } = useGetUserProfile();
@@ -74,12 +76,11 @@ export default function EditProfileScreen() {
           router.back();
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          Alert.alert("Error", e?.message ?? "Failed to update profile.");
+          Alert.alert("Error", getError(err));
         },
       }
     );
-  }, [firstName, lastName, phone, validate, updateProfile, updateUser, queryClient]);
+  }, [firstName, lastName, phone, validate, updateProfile, updateUser, queryClient, getError]);
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
 

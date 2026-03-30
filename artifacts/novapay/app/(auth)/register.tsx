@@ -16,6 +16,7 @@ import { useAuthRegister } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 const PASSWORD_RULES = [
@@ -41,6 +42,7 @@ export default function RegisterScreen() {
   const [apiError, setApiError] = useState("");
 
   const { login } = useAuth();
+  const { getError } = useApiError();
   const { mutate: authRegister, isPending } = useAuthRegister();
 
   const validate = useCallback(() => {
@@ -75,8 +77,7 @@ export default function RegisterScreen() {
           router.replace("/(tabs)");
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          setApiError(e?.message ?? "Registration failed. Please try again.");
+          setApiError(getError(err));
         },
       }
     );

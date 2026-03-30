@@ -15,6 +15,7 @@ import { useAuthLogin } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
+import { useApiError } from "@/hooks/useApiError";
 import Colors from "@/constants/colors";
 
 export default function LoginScreen() {
@@ -30,6 +31,7 @@ export default function LoginScreen() {
   const [apiError, setApiError] = useState("");
 
   const { login } = useAuth();
+  const { getError } = useApiError();
   const { mutate: authLogin, isPending } = useAuthLogin();
 
   const validate = useCallback(() => {
@@ -60,8 +62,7 @@ export default function LoginScreen() {
           router.replace("/(tabs)");
         },
         onError: (err: unknown) => {
-          const e = err as { message?: string };
-          setApiError(e?.message ?? "Invalid credentials. Please try again.");
+          setApiError(getError(err));
         },
       }
     );
