@@ -14,7 +14,7 @@ const transactionsQuerySchema = z.object({
   limit: z
     .string()
     .optional()
-    .transform((v) => Math.min(100, Math.max(1, parseInt(v ?? "20", 10))))
+    .transform((v) => Math.min(50, Math.max(1, parseInt(v ?? "20", 10))))
     .pipe(z.number().int().positive()),
 });
 

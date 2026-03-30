@@ -7,6 +7,7 @@ export type ErrorType<T = unknown> = ApiError<T>;
 export type BodyType<T> = T;
 
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
+export type RefreshTokenGetter = () => Promise<string | null>;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
@@ -17,6 +18,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _refreshTokenGetter: RefreshTokenGetter | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -34,11 +36,18 @@ export function setBaseUrl(url: string | null): void {
  * the getter is invoked; when it returns a non-null string, an
  * `Authorization: Bearer <token>` header is attached to the request.
  *
- * Useful for Expo bundles making token-gated API calls.
+ * Optionally pass a `refreshGetter` — when a 401 response is received,
+ * the refreshGetter is called to obtain a new access token and the original
+ * request is retried once with the updated token.
+ *
  * Pass `null` to clear the getter.
  */
-export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
+export function setAuthTokenGetter(
+  getter: AuthTokenGetter | null,
+  refreshGetter?: RefreshTokenGetter | null
+): void {
   _authTokenGetter = getter;
+  _refreshTokenGetter = refreshGetter ?? null;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -357,7 +366,16 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  let response = await fetch(input, { ...init, method, headers });
+
+  // On 401: try to refresh the token once and replay the request
+  if (response.status === 401 && _refreshTokenGetter) {
+    const newToken = await _refreshTokenGetter();
+    if (newToken) {
+      headers.set("authorization", `Bearer ${newToken}`);
+      response = await fetch(input, { ...init, method, headers });
+    }
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

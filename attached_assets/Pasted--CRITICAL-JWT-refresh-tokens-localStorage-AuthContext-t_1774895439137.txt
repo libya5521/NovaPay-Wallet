@@ -1,0 +1,48 @@
+🔴 مشاكل حرجة
+CRITICAL
+JWT بدون refresh tokens + تخزين في localStorage
+▼
+الـ AuthContext.tsx يخزّن JWT في localStorage على الويب — هذا عرضة لهجمات XSS بشكل مباشر. أي script خبيث يقدر يسرق التوكن. كمان لا يوجد refresh token في المشروع — التوكن إما لا ينتهي أو عند انتهائه المستخدم ينتهي جلسته فجأة.
+✅ الحل: استخدم expo-secure-store على mobile (موجود فعلاً) + httpOnly cookie على الويب. أضف refresh token مخزّن في Redis مع انتهاء صلاحية.
+CRITICAL
+لا توجد transactions مالية atomic
+▼
+route الـ /send و/withdraw في wallet.ts على الأرجح تعمل عمليتين منفصلتين: خصم الرصيد + تسجيل المعاملة. إذا انقطع الاتصال بينهما، الرصيد يُخصم بدون تسجيل — أو العكس. لا يوجد دليل على استخدام db.transaction().
+✅ الحل: كل عملية مالية لازم تكون داخل await db.transaction(async (tx) => {'{ ... }'}) واحد يشمل الخصم + الإيداع + تسجيل المعاملة.
+CRITICAL
+لا يوجد idempotency — التحويلات قابلة للتكرار
+▼
+المشروع لا يذكر أي idempotencyKey في الـ routes أو الـ schema. إذا المستخدم ضغط "إرسال" مرتين بسبب بطء الشبكة، سيُرسل المبلغ مرتين. هذا من أخطر مشاكل الـ fintech.
+✅ الحل: كل طلب تحويل يرسل idempotencyKey (UUID) من الـ client. الـ server يحفظه في قاعدة البيانات ويرفض الطلب المكرر.
+🟠 مشاكل عالية الخطورة
+HIGH
+Rate limiting غير موجود أو in-memory فقط
+▼
+المشروع يذكر Helmet وCORS لكن لا يوجد ذكر لـ rate limiter. على Replit بالذات، الخادم يعيد التشغيل وأي in-memory rate limit يُصفَّر. هذا يفتح الباب لـ brute force على login وspam على التحويلات.
+✅ الحل: express-rate-limit مع rate-limit-redis كـ store. حد 20 طلب/دقيقة على /auth، 100 طلب/15دق على باقي الـ routes.
+HIGH
+KYC placeholder — لا يوجد تحقق حقيقي
+▼
+kyc.ts يحتوي على GET /kyc/status و POST /kyc/submit لكن بناءً على الـ replit.md هي مجرد endpoints بدون منطق تحقق. يمكن لأي مستخدم "يقدم" KYC ويصبح approved فوراً.
+✅ الحل في الحد الأدنى: KYC status يبدأ pending دائماً، ويحتاج تغيير يدوي من admin أو webhook من مزود مثل Sumsub.
+HIGH
+قاعدة البيانات بدون constraints مالية
+▼
+الـ schema الموصوف في replit.md لا يذكر CHECK (balance >= 0) على جدول الـ wallets. هذا يعني إذا في bug في الكود، الرصيد ممكن يصير سالب في قاعدة البيانات.
+✅ الحل: أضف في Drizzle schema: .check('balance_non_negative', sql`balance >= 0`) وكذلك unique على الـ idempotencyKey.
+🔵 ملاحظات متوسطة
+MEDIUM
+Zod v4 مشكلة في esbuild bundle
+▼
+المشروع نفسه يحذّر في replit.md: "Zod v3 API must be used in api-server (not zod/v4 imports) — esbuild bundles fail otherwise". هذا تناقض خطير: الـ lib/api-zod تستخدم v4 لكن الـ server لازم يستخدم v3 API. هذا يعني الـ schemas المشتركة ممكن تتصرف بشكل مختلف.
+✅ الحل: توحيد على Zod v3 API في كل المشروع، أو الانتظار حتى يستقر esbuild مع v4.
+MEDIUM
+VirtualCard يعرض بيانات البطاقة كاملة في clipboard
+▼
+VirtualCard.tsx يوفر "clipboard copy per field" — هذا يعني المستخدم يقدر ينسخ رقم البطاقة والـ CVV. على الـ mobile هذا خطر لأن clipboard يمكن قراءته من apps أخرى.
+✅ الحل: اعرض الرقم مخفياً دائماً **** **** **** 1234. الـ CVV لا يُعرض ولا يُنسخ أبداً من الـ frontend.
+MEDIUM
+لا يوجد pagination validation على transactions
+▼
+GET /transactions يدعم pagination لكن بدون التحقق من الـ query params. مستخدم يقدر يطلب limit=999999 ويجلب كل البيانات دفعة واحدة.
+✅ الحل: Zod validation على كل query params: limit: z.number().max(50).default(20).

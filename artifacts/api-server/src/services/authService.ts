@@ -2,7 +2,7 @@
 import { db, usersTable, walletsTable, virtualCardsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword, generateSecureId, generateCardToken } from "../lib/crypto.js";
-import { signJwt } from "../lib/jwt.js";
+import { signTokens } from "../lib/jwt.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,10 +76,12 @@ export async function registerUser(data: {
     isActive: true,
   });
 
-  const token = signJwt({ sub: user.id, email: user.email });
+  const { accessToken, refreshToken, expiresIn } = signTokens(user.id, user.email);
 
   return {
-    token,
+    token: accessToken,
+    refreshToken,
+    expiresIn,
     user: {
       id: user.id,
       email: user.email,
@@ -111,10 +113,12 @@ export async function loginUser(email: string, password: string) {
     throw Object.assign(new Error("Invalid email or password"), { code: "INVALID_CREDENTIALS" });
   }
 
-  const token = signJwt({ sub: user.id, email: user.email });
+  const { accessToken, refreshToken, expiresIn } = signTokens(user.id, user.email);
 
   return {
-    token,
+    token: accessToken,
+    refreshToken,
+    expiresIn,
     user: {
       id: user.id,
       email: user.email,

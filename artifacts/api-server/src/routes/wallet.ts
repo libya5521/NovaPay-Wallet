@@ -66,9 +66,15 @@ router.post("/card/unfreeze", requireAuth, async (req: AuthenticatedRequest, res
   }
 });
 
+const idempotencyKeySchema = z
+  .string()
+  .uuid("idempotencyKey must be a valid UUID")
+  .optional();
+
 const moneySchema = z.object({
   amount: z.number().positive("Amount must be positive").min(0.01).max(100000),
   note: z.string().max(200).optional(),
+  idempotencyKey: idempotencyKeySchema,
 });
 
 router.post("/add", requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -82,10 +88,14 @@ router.post("/add", requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const data = await addMoney(req.userId!, result.data.amount, result.data.note);
+    const data = await addMoney(
+      req.userId!,
+      result.data.amount,
+      result.data.note,
+      result.data.idempotencyKey
+    );
     res.json(data);
   } catch (err: unknown) {
-    const e = err as { code?: string };
     req.log.error({ err }, "Add money error");
     res.status(500).json({ error: "InternalError", message: "Something went wrong" });
   }
@@ -102,7 +112,12 @@ router.post("/withdraw", requireAuth, async (req: AuthenticatedRequest, res) => 
   }
 
   try {
-    const data = await withdrawMoney(req.userId!, result.data.amount, result.data.note);
+    const data = await withdrawMoney(
+      req.userId!,
+      result.data.amount,
+      result.data.note,
+      result.data.idempotencyKey
+    );
     res.json(data);
   } catch (err: unknown) {
     const e = err as { code?: string; message?: string };
@@ -120,6 +135,7 @@ const sendMoneySchema = z.object({
   recipientEmail: z.string().email("Invalid recipient email"),
   amount: z.number().positive("Amount must be positive").min(0.01),
   note: z.string().max(200).optional(),
+  idempotencyKey: idempotencyKeySchema,
 });
 
 router.post("/send", requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -137,7 +153,8 @@ router.post("/send", requireAuth, async (req: AuthenticatedRequest, res) => {
       req.userId!,
       result.data.recipientEmail,
       result.data.amount,
-      result.data.note
+      result.data.note,
+      result.data.idempotencyKey
     );
     res.json(tx);
   } catch (err: unknown) {

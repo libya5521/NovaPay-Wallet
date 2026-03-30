@@ -73,7 +73,7 @@ export default function RegisterScreen() {
       },
       {
         onSuccess: (data) => {
-          login(data.token, data.user);
+          login(data.token, data.user, data.refreshToken ?? undefined);
           router.replace("/(tabs)");
         },
         onError: (err: unknown) => {

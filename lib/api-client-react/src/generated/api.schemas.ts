@@ -58,7 +58,12 @@ export interface UserProfile {
 }
 
 export interface AuthResponse {
+  /** Short-lived access token (15 min) */
   token: string;
+  /** Long-lived refresh token (7 days) */
+  refreshToken: string;
+  /** Access token lifetime in seconds */
+  expiresIn?: number;
   user: UserProfile;
 }
 
