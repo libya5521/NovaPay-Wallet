@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * NovaPay fintech API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -18,12 +18,16 @@ import type {
 
 import type {
   AuthResponse,
+  BalanceUpdate,
   ErrorResponse,
+  ForgotPasswordRequest,
   GetTransactionsParams,
   HealthStatus,
   KycStatus,
   KycSubmitRequest,
   LoginRequest,
+  MessageResponse,
+  MoneyRequest,
   RegisterRequest,
   SendMoneyRequest,
   TransactionList,
@@ -292,6 +296,92 @@ export const useAuthLogin = <
 };
 
 /**
+ * @summary Request password reset
+ */
+export const getAuthForgotPasswordUrl = () => {
+  return `/api/auth/forgot-password`;
+};
+
+export const authForgotPassword = async (
+  forgotPasswordRequest: ForgotPasswordRequest,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getAuthForgotPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(forgotPasswordRequest),
+  });
+};
+
+export const getAuthForgotPasswordMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authForgotPassword>>,
+    TError,
+    { data: BodyType<ForgotPasswordRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authForgotPassword>>,
+  TError,
+  { data: BodyType<ForgotPasswordRequest> },
+  TContext
+> => {
+  const mutationKey = ["authForgotPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authForgotPassword>>,
+    { data: BodyType<ForgotPasswordRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return authForgotPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthForgotPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authForgotPassword>>
+>;
+export type AuthForgotPasswordMutationBody = BodyType<ForgotPasswordRequest>;
+export type AuthForgotPasswordMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Request password reset
+ */
+export const useAuthForgotPassword = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authForgotPassword>>,
+    TError,
+    { data: BodyType<ForgotPasswordRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authForgotPassword>>,
+  TError,
+  { data: BodyType<ForgotPasswordRequest> },
+  TContext
+> => {
+  return useMutation(getAuthForgotPasswordMutationOptions(options));
+};
+
+/**
  * @summary Get current user profile
  */
 export const getGetUserProfileUrl = () => {
@@ -379,7 +469,7 @@ export const updateUserProfile = async (
 ): Promise<UserProfile> => {
   return customFetch<UserProfile>(getUpdateUserProfileUrl(), {
     ...options,
-    method: "PUT",
+    method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
     body: JSON.stringify(updateProfileRequest),
   });
@@ -601,6 +691,340 @@ export function useGetVirtualCard<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Freeze virtual card
+ */
+export const getFreezeCardUrl = () => {
+  return `/api/wallet/card/freeze`;
+};
+
+export const freezeCard = async (
+  options?: RequestInit,
+): Promise<VirtualCard> => {
+  return customFetch<VirtualCard>(getFreezeCardUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getFreezeCardMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof freezeCard>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof freezeCard>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["freezeCard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof freezeCard>>,
+    void
+  > = () => {
+    return freezeCard(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type FreezeCardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof freezeCard>>
+>;
+
+export type FreezeCardMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Freeze virtual card
+ */
+export const useFreezeCard = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof freezeCard>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof freezeCard>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getFreezeCardMutationOptions(options));
+};
+
+/**
+ * @summary Unfreeze virtual card
+ */
+export const getUnfreezeCardUrl = () => {
+  return `/api/wallet/card/unfreeze`;
+};
+
+export const unfreezeCard = async (
+  options?: RequestInit,
+): Promise<VirtualCard> => {
+  return customFetch<VirtualCard>(getUnfreezeCardUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getUnfreezeCardMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unfreezeCard>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unfreezeCard>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["unfreezeCard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unfreezeCard>>,
+    void
+  > = () => {
+    return unfreezeCard(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnfreezeCardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unfreezeCard>>
+>;
+
+export type UnfreezeCardMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Unfreeze virtual card
+ */
+export const useUnfreezeCard = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unfreezeCard>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unfreezeCard>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getUnfreezeCardMutationOptions(options));
+};
+
+/**
+ * @summary Add money to wallet
+ */
+export const getAddMoneyUrl = () => {
+  return `/api/wallet/add`;
+};
+
+export const addMoney = async (
+  moneyRequest: MoneyRequest,
+  options?: RequestInit,
+): Promise<BalanceUpdate> => {
+  return customFetch<BalanceUpdate>(getAddMoneyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moneyRequest),
+  });
+};
+
+export const getAddMoneyMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addMoney>>,
+    TError,
+    { data: BodyType<MoneyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addMoney>>,
+  TError,
+  { data: BodyType<MoneyRequest> },
+  TContext
+> => {
+  const mutationKey = ["addMoney"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addMoney>>,
+    { data: BodyType<MoneyRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return addMoney(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddMoneyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addMoney>>
+>;
+export type AddMoneyMutationBody = BodyType<MoneyRequest>;
+export type AddMoneyMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add money to wallet
+ */
+export const useAddMoney = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addMoney>>,
+    TError,
+    { data: BodyType<MoneyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addMoney>>,
+  TError,
+  { data: BodyType<MoneyRequest> },
+  TContext
+> => {
+  return useMutation(getAddMoneyMutationOptions(options));
+};
+
+/**
+ * @summary Withdraw money from wallet
+ */
+export const getWithdrawMoneyUrl = () => {
+  return `/api/wallet/withdraw`;
+};
+
+export const withdrawMoney = async (
+  moneyRequest: MoneyRequest,
+  options?: RequestInit,
+): Promise<BalanceUpdate> => {
+  return customFetch<BalanceUpdate>(getWithdrawMoneyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moneyRequest),
+  });
+};
+
+export const getWithdrawMoneyMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof withdrawMoney>>,
+    TError,
+    { data: BodyType<MoneyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof withdrawMoney>>,
+  TError,
+  { data: BodyType<MoneyRequest> },
+  TContext
+> => {
+  const mutationKey = ["withdrawMoney"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof withdrawMoney>>,
+    { data: BodyType<MoneyRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return withdrawMoney(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type WithdrawMoneyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof withdrawMoney>>
+>;
+export type WithdrawMoneyMutationBody = BodyType<MoneyRequest>;
+export type WithdrawMoneyMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Withdraw money from wallet
+ */
+export const useWithdrawMoney = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof withdrawMoney>>,
+    TError,
+    { data: BodyType<MoneyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof withdrawMoney>>,
+  TError,
+  { data: BodyType<MoneyRequest> },
+  TContext
+> => {
+  return useMutation(getWithdrawMoneyMutationOptions(options));
+};
 
 /**
  * @summary Send money to another user

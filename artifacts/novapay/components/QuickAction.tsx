@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import React from "react";
+import React, { memo } from "react";
 import { Pressable, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
@@ -12,7 +12,7 @@ interface QuickActionProps {
   testID?: string;
 }
 
-export function QuickAction({ icon, label, onPress, color, testID }: QuickActionProps) {
+export const QuickAction = memo(function QuickAction({ icon, label, onPress, color, testID }: QuickActionProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = isDark ? Colors.dark : Colors.light;
@@ -34,23 +34,10 @@ export function QuickAction({ icon, label, onPress, color, testID }: QuickAction
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  label: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 12,
-  },
+  container: { alignItems: "center", gap: 8, flex: 1 },
+  iconBox: { width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  label: { fontFamily: "Inter_500Medium", fontSize: 12 },
 });

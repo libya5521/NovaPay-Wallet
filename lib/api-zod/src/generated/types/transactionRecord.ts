@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * NovaPay fintech API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { TransactionRecordStatus } from "./transactionRecordStatus";
 import type { TransactionRecordType } from "./transactionRecordType";

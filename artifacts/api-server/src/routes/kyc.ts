@@ -9,21 +9,21 @@ router.get("/status", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const status = await getKycStatus(req.userId!);
     res.json(status);
-  } catch (err: any) {
+  } catch (err: unknown) {
     req.log.error({ err }, "Get KYC status error");
-    res.status(500).json({ error: "InternalError", message: "Failed to fetch KYC status" });
+    res.status(500).json({ error: "InternalError", message: "Something went wrong" });
   }
 });
 
 const kycSubmitSchema = z.object({
-  fullName: z.string().min(1),
-  dateOfBirth: z.string().min(1),
-  nationality: z.string().min(1),
+  fullName: z.string().min(2, "Full name is required").max(200),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  nationality: z.string().min(2).max(100),
   documentType: z.enum(["passport", "national_id", "drivers_license"]),
-  documentNumber: z.string().min(1),
-  addressLine1: z.string().min(1),
-  city: z.string().min(1),
-  country: z.string().min(1),
+  documentNumber: z.string().min(3).max(50),
+  addressLine1: z.string().min(5).max(200),
+  city: z.string().min(2).max(100),
+  country: z.string().min(2).max(100),
 });
 
 router.post("/submit", requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -39,9 +39,9 @@ router.post("/submit", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const status = await submitKyc(req.userId!, result.data);
     res.json(status);
-  } catch (err: any) {
+  } catch (err: unknown) {
     req.log.error({ err }, "Submit KYC error");
-    res.status(500).json({ error: "InternalError", message: "Failed to submit KYC" });
+    res.status(500).json({ error: "InternalError", message: "Something went wrong" });
   }
 });
 

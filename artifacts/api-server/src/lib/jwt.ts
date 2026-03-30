@@ -1,7 +1,13 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
-const JWT_SECRET = process.env["JWT_SECRET"] ?? "novapay-dev-secret-change-in-production";
+const JWT_SECRET = process.env["JWT_SECRET"];
 const JWT_EXPIRY_HOURS = 24;
+
+if (!JWT_SECRET && process.env["NODE_ENV"] === "production") {
+  throw new Error("JWT_SECRET environment variable must be set in production");
+}
+
+const secret = JWT_SECRET ?? "novapay-dev-secret-change-in-production";
 
 function base64urlEncode(str: string): string {
   return Buffer.from(str)
@@ -33,7 +39,7 @@ export function signJwt(payload: Omit<JwtPayload, "iat" | "exp">): string {
 
   const header = base64urlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const body = base64urlEncode(JSON.stringify(fullPayload));
-  const sig = createHmac("sha256", JWT_SECRET)
+  const sig = createHmac("sha256", secret)
     .update(`${header}.${body}`)
     .digest("base64")
     .replace(/\+/g, "-")
@@ -48,14 +54,22 @@ export function verifyJwt(token: string): JwtPayload {
   if (parts.length !== 3) throw new Error("Invalid token structure");
 
   const [header, body, sig] = parts;
-  const expectedSig = createHmac("sha256", JWT_SECRET)
+  const expectedSig = createHmac("sha256", secret)
     .update(`${header}.${body}`)
     .digest("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=/g, "");
 
-  if (sig !== expectedSig) throw new Error("Invalid token signature");
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expectedSig);
+
+  if (
+    sigBuf.length !== expectedBuf.length ||
+    !timingSafeEqual(sigBuf, expectedBuf)
+  ) {
+    throw new Error("Invalid token signature");
+  }
 
   const payload = JSON.parse(base64urlDecode(body)) as JwtPayload;
   const now = Math.floor(Date.now() / 1000);

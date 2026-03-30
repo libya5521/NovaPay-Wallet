@@ -94,3 +94,55 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+### `artifacts/novapay` (`@workspace/novapay`)
+
+Expo React Native (+ web) mobile fintech app — NovaPay.
+
+**Screens (app/):**
+- `(auth)/login.tsx` — Login with email/password, error banner, forgot password link
+- `(auth)/register.tsx` — Registration with password-strength rules indicator
+- `(auth)/forgot-password.tsx` — Forgot password with email submission + success state
+- `(tabs)/index.tsx` — Dashboard: balance card, quick actions (Send/Add/Withdraw/Activity), recent transactions
+- `(tabs)/card.tsx` — Virtual card with freeze/unfreeze toggle wired to API
+- `(tabs)/transactions.tsx` — Full transaction history with skeleton loaders, pagination, tap-for-detail modal
+- `(tabs)/profile.tsx` — Profile info, edit button (navigates to /edit-profile), KYC verification section
+- `(tabs)/settings.tsx` — Settings screen: account, integrations, app, danger zone
+- `edit-profile.tsx` — Edit first/last/phone with pre-fill from current profile
+
+**Components (components/):**
+- `BalanceCard.tsx` — Gradient balance card with show/hide toggle
+- `VirtualCard.tsx` — Card visualization with clipboard copy per field
+- `TransactionItem.tsx` — Memoized transaction row with type-aware icons/colors
+- `QuickAction.tsx` — Memoized quick action button with haptics
+- `SendMoneyModal.tsx` — 2-step send: form → confirmation → execute
+- `AddMoneyModal.tsx` — Top-up with preset quick amounts + custom input
+- `WithdrawModal.tsx` — Withdraw with balance display and max button
+
+**Key files:**
+- `context/AuthContext.tsx` — JWT auth state using SecureStore (web: localStorage). `setAuthTokenGetter` wires token to API client.
+- `constants/colors.ts` — Revolut-style design tokens: light/dark, text, tint, surface, status colors
+- `hooks/useApiError.ts` — Consistent API error message parser
+- `metro.config.js` — Blocks bcrypt temp files from Metro watcher (critical — without it Expo crashes)
+- `babel.config.js` — Uses `babel-preset-expo@~54.0.10` (must match expo version)
+
+**Backend API (artifacts/api-server/src/routes/):**
+- `auth.ts` — POST /login, /register, /forgot-password
+- `wallet.ts` — GET /balance, GET /card, POST /send, POST /add, POST /withdraw, POST /card/freeze, POST /card/unfreeze
+- `transactions.ts` — GET /transactions (paginated with `hasMore`)
+- `user.ts` — GET /profile, PATCH /profile
+- `kyc.ts` — GET /kyc/status, POST /kyc/submit
+
+**Security:**
+- bcrypt cost 12 for password hashing
+- JWT with timingSafeEqual comparison; startup validation of JWT_SECRET env var
+- Helmet.js, CORS locked to env-var origin
+- Global error handler (no stack traces in prod)
+
+**Important notes:**
+- Zod v3 API must be used in api-server (not `zod/v4` imports) — esbuild bundles fail otherwise
+- `/user/profile` route is PATCH (not PUT)
+- KYC routes at `/kyc/status` and `/kyc/submit`
+- `setBaseUrl` called in `app/_layout.tsx`; `setAuthTokenGetter` wired in AuthContext
+- Existing demo user passwords are bcrypt-incompatible; re-register to test
+- `expo-clipboard@55` and `expo-secure-store@55` are installed (newer than expected; functional but show warnings)

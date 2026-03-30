@@ -1,5 +1,5 @@
 import { db, transactionsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, count } from "drizzle-orm";
 
 export async function getTransactions(
   userId: string,
@@ -8,19 +8,21 @@ export async function getTransactions(
 ) {
   const offset = (page - 1) * limit;
 
-  const rows = await db
-    .select()
-    .from(transactionsTable)
-    .where(eq(transactionsTable.userId, userId))
-    .orderBy(desc(transactionsTable.createdAt))
-    .limit(limit)
-    .offset(offset);
+  const [rows, totalResult] = await Promise.all([
+    db
+      .select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.userId, userId))
+      .orderBy(desc(transactionsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: count() })
+      .from(transactionsTable)
+      .where(eq(transactionsTable.userId, userId)),
+  ]);
 
-  // Count total (simple approach — for production use a COUNT query)
-  const all = await db
-    .select({ id: transactionsTable.id })
-    .from(transactionsTable)
-    .where(eq(transactionsTable.userId, userId));
+  const total = totalResult[0]?.count ?? 0;
 
   return {
     transactions: rows.map((tx) => ({
@@ -30,12 +32,13 @@ export async function getTransactions(
       currency: tx.currency,
       description: tx.description,
       status: tx.status,
-      counterpartyName: tx.counterpartyName,
-      counterpartyEmail: tx.counterpartyEmail,
+      counterpartyName: tx.counterpartyName ?? null,
+      counterpartyEmail: tx.counterpartyEmail ?? null,
       createdAt: tx.createdAt.toISOString(),
     })),
-    total: all.length,
+    total,
     page,
     limit,
+    hasMore: offset + rows.length < total,
   };
 }

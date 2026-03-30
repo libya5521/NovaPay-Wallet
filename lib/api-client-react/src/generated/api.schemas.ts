@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * NovaPay fintech API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -11,6 +11,10 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+  message: string;
+}
+
+export interface MessageResponse {
   message: string;
 }
 
@@ -26,6 +30,10 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
 }
 
 export type UserProfileKycStatus =
@@ -66,6 +74,17 @@ export interface WalletBalance {
   accountNumber: string;
 }
 
+export interface BalanceUpdate {
+  balance: number;
+  currency: string;
+}
+
+export interface MoneyRequest {
+  /** @minimum 0.01 */
+  amount: number;
+  note?: string;
+}
+
 export type VirtualCardCardType =
   (typeof VirtualCardCardType)[keyof typeof VirtualCardCardType];
 
@@ -75,6 +94,7 @@ export const VirtualCardCardType = {
 } as const;
 
 export interface VirtualCard {
+  id?: string;
   cardNumber: string;
   cardHolder: string;
   expiryMonth: number;
@@ -125,6 +145,7 @@ export interface TransactionList {
   total: number;
   page: number;
   limit: number;
+  hasMore: boolean;
 }
 
 export type KycStatusStatus =

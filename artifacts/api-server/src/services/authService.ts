@@ -1,24 +1,16 @@
-import { createHash } from "crypto";
+import bcrypt from "bcrypt";
 import { db, usersTable, walletsTable, virtualCardsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { signJwt } from "../lib/jwt.js";
 
-/**
- * Bcrypt-style password hashing using Node.js built-in crypto.
- * For production: replace with `bcrypt` or `argon2` npm package.
- * Integration point: `npm install bcrypt` and swap these functions.
- */
-function hashPassword(password: string): string {
-  // Simple PBKDF2-style hash with salt (no external deps)
-  const salt = createHash("sha256").update(Date.now().toString()).digest("hex").slice(0, 16);
-  const hash = createHash("sha256").update(salt + password).digest("hex");
-  return `${salt}:${hash}`;
+const BCRYPT_ROUNDS = 12;
+
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-function verifyPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  const computed = createHash("sha256").update(salt + password).digest("hex");
-  return computed === hash;
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  return bcrypt.compare(password, stored);
 }
 
 function generateAccountNumber(): string {
@@ -54,7 +46,7 @@ export async function registerUser(data: {
     throw Object.assign(new Error("Email already registered"), { code: "DUPLICATE_EMAIL" });
   }
 
-  const passwordHash = hashPassword(data.password);
+  const passwordHash = await hashPassword(data.password);
 
   const [user] = await db
     .insert(usersTable)
@@ -67,20 +59,16 @@ export async function registerUser(data: {
     })
     .returning();
 
-  // Create wallet for new user
   const [wallet] = await db
     .insert(walletsTable)
     .values({
       userId: user.id,
-      balance: "1000.00", // Demo starting balance
+      balance: "1000.00",
       currency: "USD",
       accountNumber: generateAccountNumber(),
     })
     .returning();
 
-  // Create virtual card for new user
-  // Integration point: Replace with Wallester card issuance API call
-  // See: https://docs.wallester.com/api/cards/create
   const now = new Date();
   const expiryYear = now.getFullYear() + 4;
   const expiryMonth = now.getMonth() + 1;
@@ -105,8 +93,8 @@ export async function registerUser(data: {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone,
-      avatarUrl: user.avatarUrl,
+      phone: user.phone ?? null,
+      avatarUrl: user.avatarUrl ?? null,
       kycStatus: user.kycStatus,
       createdAt: user.createdAt.toISOString(),
     },
@@ -120,7 +108,7 @@ export async function loginUser(email: string, password: string) {
     .where(eq(usersTable.email, email.toLowerCase()))
     .limit(1);
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || !(await verifyPassword(password, user.passwordHash))) {
     throw Object.assign(new Error("Invalid email or password"), { code: "INVALID_CREDENTIALS" });
   }
 
@@ -133,8 +121,8 @@ export async function loginUser(email: string, password: string) {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone,
-      avatarUrl: user.avatarUrl,
+      phone: user.phone ?? null,
+      avatarUrl: user.avatarUrl ?? null,
       kycStatus: user.kycStatus,
       createdAt: user.createdAt.toISOString(),
     },

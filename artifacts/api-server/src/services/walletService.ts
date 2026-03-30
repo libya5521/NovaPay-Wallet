@@ -19,6 +19,79 @@ export async function getWalletBalance(userId: string) {
   };
 }
 
+export async function addMoney(userId: string, amount: number, note?: string) {
+  if (amount <= 0) {
+    throw Object.assign(new Error("Amount must be greater than 0"), { code: "INVALID_AMOUNT" });
+  }
+
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, userId))
+    .limit(1);
+
+  if (!wallet) {
+    throw Object.assign(new Error("Wallet not found"), { code: "WALLET_NOT_FOUND" });
+  }
+
+  const newBalance = (parseFloat(wallet.balance) + amount).toFixed(2);
+
+  await db
+    .update(walletsTable)
+    .set({ balance: newBalance, updatedAt: new Date() })
+    .where(eq(walletsTable.id, wallet.id));
+
+  await db.insert(transactionsTable).values({
+    userId,
+    type: "credit",
+    amount: amount.toFixed(2),
+    currency: "USD",
+    description: note ? `Top-up: ${note}` : "Account top-up",
+    status: "completed",
+  });
+
+  return { balance: parseFloat(newBalance), currency: wallet.currency };
+}
+
+export async function withdrawMoney(userId: string, amount: number, note?: string) {
+  if (amount <= 0) {
+    throw Object.assign(new Error("Amount must be greater than 0"), { code: "INVALID_AMOUNT" });
+  }
+
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, userId))
+    .limit(1);
+
+  if (!wallet) {
+    throw Object.assign(new Error("Wallet not found"), { code: "WALLET_NOT_FOUND" });
+  }
+
+  const currentBalance = parseFloat(wallet.balance);
+  if (currentBalance < amount) {
+    throw Object.assign(new Error("Insufficient funds"), { code: "INSUFFICIENT_FUNDS" });
+  }
+
+  const newBalance = (currentBalance - amount).toFixed(2);
+
+  await db
+    .update(walletsTable)
+    .set({ balance: newBalance, updatedAt: new Date() })
+    .where(eq(walletsTable.id, wallet.id));
+
+  await db.insert(transactionsTable).values({
+    userId,
+    type: "debit",
+    amount: amount.toFixed(2),
+    currency: "USD",
+    description: note ? `Withdrawal: ${note}` : "Bank withdrawal",
+    status: "completed",
+  });
+
+  return { balance: parseFloat(newBalance), currency: wallet.currency };
+}
+
 export async function sendMoney(
   senderId: string,
   recipientEmail: string,
@@ -29,7 +102,6 @@ export async function sendMoney(
     throw Object.assign(new Error("Amount must be greater than 0"), { code: "INVALID_AMOUNT" });
   }
 
-  // Get sender's wallet
   const [senderWallet] = await db
     .select()
     .from(walletsTable)
@@ -37,7 +109,7 @@ export async function sendMoney(
     .limit(1);
 
   if (!senderWallet) {
-    throw Object.assign(new Error("Sender wallet not found"), { code: "WALLET_NOT_FOUND" });
+    throw Object.assign(new Error("Wallet not found"), { code: "WALLET_NOT_FOUND" });
   }
 
   const currentBalance = parseFloat(senderWallet.balance);
@@ -45,7 +117,6 @@ export async function sendMoney(
     throw Object.assign(new Error("Insufficient funds"), { code: "INSUFFICIENT_FUNDS" });
   }
 
-  // Find recipient
   const [recipient] = await db
     .select()
     .from(usersTable)
@@ -60,7 +131,6 @@ export async function sendMoney(
     throw Object.assign(new Error("Cannot send money to yourself"), { code: "SELF_TRANSFER" });
   }
 
-  // Get recipient wallet
   const [recipientWallet] = await db
     .select()
     .from(walletsTable)
@@ -71,7 +141,6 @@ export async function sendMoney(
     throw Object.assign(new Error("Recipient wallet not found"), { code: "RECIPIENT_WALLET_NOT_FOUND" });
   }
 
-  // Update balances
   const newSenderBalance = (currentBalance - amount).toFixed(2);
   const newRecipientBalance = (parseFloat(recipientWallet.balance) + amount).toFixed(2);
 
@@ -85,9 +154,10 @@ export async function sendMoney(
     .set({ balance: newRecipientBalance, updatedAt: new Date() })
     .where(eq(walletsTable.id, recipientWallet.id));
 
-  const description = note ? `Transfer: ${note}` : `Sent to ${recipient.firstName} ${recipient.lastName}`;
+  const description = note
+    ? `Transfer: ${note}`
+    : `Sent to ${recipient.firstName} ${recipient.lastName}`;
 
-  // Create debit transaction for sender
   const [tx] = await db
     .insert(transactionsTable)
     .values({
@@ -102,15 +172,20 @@ export async function sendMoney(
     })
     .returning();
 
-  // Create credit transaction for recipient
+  const [sender] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, senderId))
+    .limit(1);
+
   await db.insert(transactionsTable).values({
     userId: recipient.id,
     type: "credit",
     amount: amount.toFixed(2),
     currency: "USD",
-    description: `Received from ${(await db.select().from(usersTable).where(eq(usersTable.id, senderId)).limit(1))[0]?.firstName ?? "User"}`,
+    description: `Received from ${sender?.firstName ?? "User"} ${sender?.lastName ?? ""}`.trim(),
     status: "completed",
-    counterpartyEmail: recipientEmail,
+    counterpartyEmail: sender?.email,
   });
 
   return {

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   getGetKycStatusQueryKey,
   useGetKycStatus,
@@ -25,15 +26,15 @@ import { useQueryClient } from "@tanstack/react-query";
 
 function KycBadge({ status, colors }: { status: string; colors: typeof Colors.light }) {
   const config: Record<string, { color: string; bg: string; icon: keyof typeof Feather.glyphMap; label: string }> = {
-    pending: { color: colors.warning, bg: "#FEF3C7", icon: "clock", label: "Not Verified" },
+    pending: { color: colors.warning, bg: colors.warningLight, icon: "clock", label: "Not Verified" },
     submitted: { color: colors.tint, bg: colors.tintLight, icon: "upload", label: "Under Review" },
-    approved: { color: colors.success, bg: "#DCFCE7", icon: "check-circle", label: "Verified" },
-    rejected: { color: colors.error, bg: "#FEE2E2", icon: "x-circle", label: "Rejected" },
+    approved: { color: colors.success, bg: colors.successLight, icon: "check-circle", label: "Verified" },
+    rejected: { color: colors.error, bg: colors.errorLight, icon: "x-circle", label: "Rejected" },
   };
   const c = config[status] ?? config.pending;
   return (
     <View style={[kycStyles.badge, { backgroundColor: c.bg }]}>
-      <Feather name={c.icon} size={14} color={c.color} />
+      <Feather name={c.icon} size={13} color={c.color} />
       <Text style={[kycStyles.label, { color: c.color }]}>{c.label}</Text>
     </View>
   );
@@ -53,7 +54,7 @@ function ProfileRow({ icon, label, value, colors }: {
   return (
     <View style={[rowStyles.container, { backgroundColor: colors.surface }]}>
       <View style={[rowStyles.iconBox, { backgroundColor: colors.tintLight }]}>
-        <Feather name={icon} size={17} color={colors.tint} />
+        <Feather name={icon} size={16} color={colors.tint} />
       </View>
       <View style={rowStyles.text}>
         <Text style={[rowStyles.label, { color: colors.textSecondary }]}>{label}</Text>
@@ -65,7 +66,7 @@ function ProfileRow({ icon, label, value, colors }: {
 
 const rowStyles = StyleSheet.create({
   container: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, marginBottom: 8 },
-  iconBox: { width: 40, height: 40, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  iconBox: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   text: { flex: 1 },
   label: { fontFamily: "Inter_400Regular", fontSize: 11, marginBottom: 2 },
   value: { fontFamily: "Inter_500Medium", fontSize: 14 },
@@ -143,16 +144,14 @@ export default function ProfileScreen() {
   const initials = profile
     ? `${profile.firstName[0] ?? ""}${profile.lastName[0] ?? ""}`.toUpperCase()
     : "?";
+  const kycStatus = kyc?.status ?? profile?.kycStatus ?? "pending";
 
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.container,
-        {
-          paddingTop: topPadding,
-          paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 90,
-        },
+        { paddingTop: topPadding, paddingBottom: (Platform.OS === "web" ? 34 : insets.bottom) + 90 },
       ]}
       showsVerticalScrollIndicator={false}
     >
@@ -170,7 +169,15 @@ export default function ProfileScreen() {
             {profile?.email ?? "—"}
           </Text>
         </View>
-        {profile && <KycBadge status={profile.kycStatus} colors={colors} />}
+        <View style={styles.avatarActions}>
+          <KycBadge status={kycStatus} colors={colors} />
+          <Pressable
+            style={[styles.editBtn, { backgroundColor: colors.tintLight }]}
+            onPress={() => router.push("/edit-profile")}
+          >
+            <Feather name="edit-2" size={14} color={colors.tint} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -197,17 +204,17 @@ export default function ProfileScreen() {
             <View>
               <Text style={[styles.kycTitle, { color: colors.text }]}>Identity Verification</Text>
               <Text style={[styles.kycSubtitle, { color: colors.textSecondary }]}>
-                Powered by Sumsub (placeholder)
+                Powered by Sumsub
               </Text>
             </View>
             {kycLoading ? (
               <ActivityIndicator size="small" color={colors.tint} />
             ) : (
-              <KycBadge status={kyc?.status ?? profile?.kycStatus ?? "pending"} colors={colors} />
+              <KycBadge status={kycStatus} colors={colors} />
             )}
           </View>
 
-          {(kyc?.status === "pending" || profile?.kycStatus === "pending") && !kycSubmitted && (
+          {kycStatus === "pending" && !kycSubmitted && (
             <View style={styles.kycCta}>
               <Text style={[styles.kycCtaText, { color: colors.textSecondary }]}>
                 Complete verification to unlock higher limits and full features.
@@ -221,40 +228,34 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {(kyc?.status === "submitted" || kycSubmitted) && (
+          {(kycStatus === "submitted" || kycSubmitted) && (
             <Text style={[styles.kycMsg, { color: colors.warning }]}>
-              Your documents are under review. This typically takes 1-2 business days.
+              Your documents are under review. This typically takes 1–2 business days.
             </Text>
           )}
 
-          {kyc?.status === "approved" && (
+          {kycStatus === "approved" && (
             <Text style={[styles.kycMsg, { color: colors.success }]}>
               Your identity has been verified successfully.
             </Text>
           )}
 
-          {kyc?.status === "rejected" && (
+          {kycStatus === "rejected" && (
             <Text style={[styles.kycMsg, { color: colors.error }]}>
-              {kyc.rejectionReason ?? "Verification was not successful. Please resubmit."}
+              {(kyc as { rejectionReason?: string } | null | undefined)?.rejectionReason ?? "Verification was not successful. Please resubmit."}
             </Text>
           )}
 
           <View style={[styles.kycNote, { backgroundColor: colors.tintLight }]}>
             <Feather name="info" size={13} color={colors.tint} />
             <Text style={[styles.kycNoteText, { color: colors.tint }]}>
-              Integration point: Connect your Sumsub applicant flow here
+              Connect your Sumsub account in Settings to enable real identity verification.
             </Text>
           </View>
         </View>
       </View>
 
-      <Button
-        title="Sign Out"
-        onPress={handleLogout}
-        variant="danger"
-        fullWidth
-        testID="logout-btn"
-      />
+      <Button title="Sign Out" onPress={handleLogout} variant="danger" fullWidth testID="logout-btn" />
     </ScrollView>
   );
 }
@@ -264,25 +265,14 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   container: { paddingHorizontal: 20, gap: 0 },
   pageTitle: { fontFamily: "Inter_700Bold", fontSize: 26, marginBottom: 20 },
-  avatarSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: "#FFF", fontFamily: "Inter_700Bold", fontSize: 20 },
+  avatarSection: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 18, marginBottom: 24 },
+  avatar: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "#FFF", fontFamily: "Inter_700Bold", fontSize: 18 },
   nameBlock: { flex: 1 },
-  fullName: { fontFamily: "Inter_700Bold", fontSize: 17, marginBottom: 2 },
-  emailText: { fontFamily: "Inter_400Regular", fontSize: 13 },
+  fullName: { fontFamily: "Inter_700Bold", fontSize: 16, marginBottom: 2 },
+  emailText: { fontFamily: "Inter_400Regular", fontSize: 12 },
+  avatarActions: { alignItems: "flex-end", gap: 8 },
+  editBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   section: { marginBottom: 24 },
   sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, marginBottom: 12 },
   kycCard: { borderRadius: 16, padding: 16, gap: 14 },
@@ -292,12 +282,6 @@ const styles = StyleSheet.create({
   kycCta: { gap: 10 },
   kycCtaText: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 },
   kycMsg: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 },
-  kycNote: {
-    flexDirection: "row",
-    gap: 8,
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "flex-start",
-  },
+  kycNote: { flexDirection: "row", gap: 8, padding: 10, borderRadius: 8, alignItems: "flex-start" },
   kycNoteText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 16 },
 });

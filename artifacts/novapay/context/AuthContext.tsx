@@ -1,9 +1,36 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import { router } from "expo-router";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 
-interface User {
+const TOKEN_KEY = "novapay_token";
+const USER_KEY = "novapay_user";
+
+async function secureSet(key: string, value: string) {
+  if (Platform.OS === "web") {
+    try { localStorage.setItem(key, value); } catch {}
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
+async function secureGet(key: string): Promise<string | null> {
+  if (Platform.OS === "web") {
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function secureDelete(key: string) {
+  if (Platform.OS === "web") {
+    try { localStorage.removeItem(key); } catch {}
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
+
+export interface AuthUser {
   id: string;
   email: string;
   firstName: string;
@@ -15,25 +42,25 @@ interface User {
 }
 
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (token: string, user: User) => Promise<void>;
+  login: (token: string, user: AuthUser) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (user: User) => void;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-let _tokenGetter: (() => string | null) = () => null;
+let _currentToken: string | null = null;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setAuthTokenGetter(() => _tokenGetter());
+    setAuthTokenGetter(() => _currentToken);
   }, []);
 
   useEffect(() => {
@@ -43,47 +70,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadStoredAuth = async () => {
     try {
       const [storedToken, storedUser] = await Promise.all([
-        AsyncStorage.getItem("@novapay_token"),
-        AsyncStorage.getItem("@novapay_user"),
+        secureGet(TOKEN_KEY),
+        secureGet(USER_KEY),
       ]);
       if (storedToken && storedUser) {
-        const parsedUser = JSON.parse(storedUser) as User;
+        const parsedUser = JSON.parse(storedUser) as AuthUser;
         setToken(storedToken);
         setUser(parsedUser);
-        _tokenGetter = () => storedToken;
+        _currentToken = storedToken;
       }
     } catch {
-      // ignore
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (newToken: string, newUser: User) => {
+  const login = useCallback(async (newToken: string, newUser: AuthUser) => {
     await Promise.all([
-      AsyncStorage.setItem("@novapay_token", newToken),
-      AsyncStorage.setItem("@novapay_user", JSON.stringify(newUser)),
+      secureSet(TOKEN_KEY, newToken),
+      secureSet(USER_KEY, JSON.stringify(newUser)),
     ]);
     setToken(newToken);
     setUser(newUser);
-    _tokenGetter = () => newToken;
-  };
+    _currentToken = newToken;
+  }, []);
 
-  const logout = async () => {
-    await Promise.all([
-      AsyncStorage.removeItem("@novapay_token"),
-      AsyncStorage.removeItem("@novapay_user"),
-    ]);
+  const logout = useCallback(async () => {
+    await Promise.all([secureDelete(TOKEN_KEY), secureDelete(USER_KEY)]);
     setToken(null);
     setUser(null);
-    _tokenGetter = () => null;
+    _currentToken = null;
     router.replace("/(auth)/login");
-  };
+  }, []);
 
-  const updateUser = (updatedUser: User) => {
+  const updateUser = useCallback((updatedUser: AuthUser) => {
     setUser(updatedUser);
-    AsyncStorage.setItem("@novapay_user", JSON.stringify(updatedUser)).catch(() => {});
-  };
+    secureSet(USER_KEY, JSON.stringify(updatedUser)).catch(() => {});
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser }}>

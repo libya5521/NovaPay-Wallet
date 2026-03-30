@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * NovaPay fintech API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
@@ -48,6 +48,17 @@ export const AuthLoginResponse = zod.object({
     kycStatus: zod.enum(["pending", "submitted", "approved", "rejected"]),
     createdAt: zod.string(),
   }),
+});
+
+/**
+ * @summary Request password reset
+ */
+export const AuthForgotPasswordBody = zod.object({
+  email: zod.string().email(),
+});
+
+export const AuthForgotPasswordResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -97,6 +108,7 @@ export const GetWalletBalanceResponse = zod.object({
  * @summary Get virtual card details
  */
 export const GetVirtualCardResponse = zod.object({
+  id: zod.string().optional(),
   cardNumber: zod.string(),
   cardHolder: zod.string(),
   expiryMonth: zod.number(),
@@ -104,6 +116,64 @@ export const GetVirtualCardResponse = zod.object({
   cvv: zod.string(),
   cardType: zod.enum(["visa", "mastercard"]),
   isActive: zod.boolean(),
+});
+
+/**
+ * @summary Freeze virtual card
+ */
+export const FreezeCardResponse = zod.object({
+  id: zod.string().optional(),
+  cardNumber: zod.string(),
+  cardHolder: zod.string(),
+  expiryMonth: zod.number(),
+  expiryYear: zod.number(),
+  cvv: zod.string(),
+  cardType: zod.enum(["visa", "mastercard"]),
+  isActive: zod.boolean(),
+});
+
+/**
+ * @summary Unfreeze virtual card
+ */
+export const UnfreezeCardResponse = zod.object({
+  id: zod.string().optional(),
+  cardNumber: zod.string(),
+  cardHolder: zod.string(),
+  expiryMonth: zod.number(),
+  expiryYear: zod.number(),
+  cvv: zod.string(),
+  cardType: zod.enum(["visa", "mastercard"]),
+  isActive: zod.boolean(),
+});
+
+/**
+ * @summary Add money to wallet
+ */
+export const addMoneyBodyAmountMin = 0.01;
+
+export const AddMoneyBody = zod.object({
+  amount: zod.number().min(addMoneyBodyAmountMin),
+  note: zod.string().optional(),
+});
+
+export const AddMoneyResponse = zod.object({
+  balance: zod.number(),
+  currency: zod.string(),
+});
+
+/**
+ * @summary Withdraw money from wallet
+ */
+export const withdrawMoneyBodyAmountMin = 0.01;
+
+export const WithdrawMoneyBody = zod.object({
+  amount: zod.number().min(withdrawMoneyBodyAmountMin),
+  note: zod.string().optional(),
+});
+
+export const WithdrawMoneyResponse = zod.object({
+  balance: zod.number(),
+  currency: zod.string(),
 });
 
 /**
@@ -157,6 +227,7 @@ export const GetTransactionsResponse = zod.object({
   total: zod.number(),
   page: zod.number(),
   limit: zod.number(),
+  hasMore: zod.boolean(),
 });
 
 /**

@@ -3,11 +3,13 @@
  * Do not edit manually.
  * Api
  * NovaPay fintech API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from "./authResponse";
+export * from "./balanceUpdate";
 export * from "./errorResponse";
+export * from "./forgotPasswordRequest";
 export * from "./getTransactionsParams";
 export * from "./healthStatus";
 export * from "./kycStatus";
@@ -15,6 +17,8 @@ export * from "./kycStatusStatus";
 export * from "./kycSubmitRequest";
 export * from "./kycSubmitRequestDocumentType";
 export * from "./loginRequest";
+export * from "./messageResponse";
+export * from "./moneyRequest";
 export * from "./registerRequest";
 export * from "./sendMoneyRequest";
 export * from "./transactionList";

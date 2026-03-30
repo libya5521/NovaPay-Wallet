@@ -6,8 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface UpdateProfileRequest {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+export interface MessageResponse {
+  message: string;
 }

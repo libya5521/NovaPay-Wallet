@@ -3,11 +3,12 @@
  * Do not edit manually.
  * Api
  * NovaPay fintech API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { VirtualCardCardType } from "./virtualCardCardType";
 
 export interface VirtualCard {
+  id?: string;
   cardNumber: string;
   cardHolder: string;
   expiryMonth: number;

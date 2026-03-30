@@ -1,16 +1,24 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   useColorScheme,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { useGetVirtualCard } from "@workspace/api-client-react";
+import {
+  getGetVirtualCardQueryKey,
+  useGetVirtualCard,
+  useFreezeCard,
+  useUnfreezeCard,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { VirtualCard } from "@/components/VirtualCard";
 import Colors from "@/constants/colors";
 
@@ -46,9 +54,60 @@ export default function CardScreen() {
   const isDark = colorScheme === "dark";
   const colors = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+
   const { data: card, isLoading, error } = useGetVirtualCard();
+  const { mutate: freezeCard, isPending: freezing } = useFreezeCard();
+  const { mutate: unfreezeCard, isPending: unfreezing } = useUnfreezeCard();
+  const [toggling, setToggling] = useState(false);
+
+  const isFrozen = card ? !card.isActive : false;
+  const actionPending = freezing || unfreezing || toggling;
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
+
+  const handleToggleFreeze = useCallback(() => {
+    if (!card || actionPending) return;
+    setToggling(true);
+    if (isFrozen) {
+      unfreezeCard(undefined, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetVirtualCardQueryKey() });
+          setToggling(false);
+        },
+        onError: (err: unknown) => {
+          const e = err as { message?: string };
+          Alert.alert("Error", e?.message ?? "Could not unfreeze card.");
+          setToggling(false);
+        },
+      });
+    } else {
+      Alert.alert(
+        "Freeze Card",
+        "Freezing your card will temporarily prevent all transactions. You can unfreeze at any time.",
+        [
+          { text: "Cancel", style: "cancel", onPress: () => setToggling(false) },
+          {
+            text: "Freeze",
+            style: "destructive",
+            onPress: () => {
+              freezeCard(undefined, {
+                onSuccess: () => {
+                  queryClient.invalidateQueries({ queryKey: getGetVirtualCardQueryKey() });
+                  setToggling(false);
+                },
+                onError: (err: unknown) => {
+                  const e = err as { message?: string };
+                  Alert.alert("Error", e?.message ?? "Could not freeze card.");
+                  setToggling(false);
+                },
+              });
+            },
+          },
+        ]
+      );
+    }
+  }, [card, isFrozen, actionPending, freezeCard, unfreezeCard, queryClient]);
 
   return (
     <ScrollView
@@ -90,6 +149,35 @@ export default function CardScreen() {
         </View>
       )}
 
+      {card && (
+        <View style={[styles.freezeRow, { backgroundColor: colors.surface }]}>
+          <View style={styles.freezeInfo}>
+            <Feather
+              name={isFrozen ? "lock" : "unlock"}
+              size={20}
+              color={isFrozen ? colors.error : colors.success}
+            />
+            <View style={styles.freezeText}>
+              <Text style={[styles.freezeTitle, { color: colors.text }]}>
+                {isFrozen ? "Card Frozen" : "Card Active"}
+              </Text>
+              <Text style={[styles.freezeDesc, { color: colors.textSecondary }]}>
+                {isFrozen
+                  ? "Toggle to unfreeze and re-enable transactions"
+                  : "Toggle to freeze and block all transactions"}
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={!isFrozen}
+            onValueChange={handleToggleFreeze}
+            disabled={actionPending}
+            trackColor={{ false: colors.error, true: colors.success }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+      )}
+
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Card Features</Text>
         <CardFeatureRow
@@ -118,10 +206,10 @@ export default function CardScreen() {
         />
       </View>
 
-      <View style={[styles.integrationNote, { backgroundColor: colors.tintLight, borderColor: colors.tint }]}>
-        <Feather name="info" size={16} color={colors.tint} />
+      <View style={[styles.integrationNote, { backgroundColor: colors.tintLight, borderColor: colors.tintLight }]}>
+        <Feather name="info" size={15} color={colors.tint} />
         <Text style={[styles.integrationText, { color: colors.tint }]}>
-          Card issuing powered by Wallester API integration (placeholder — connect your Wallester account in settings)
+          Card issuing powered by Wallester. Connect your Wallester account in Settings to issue real cards.
         </Text>
       </View>
     </ScrollView>
@@ -130,7 +218,7 @@ export default function CardScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { paddingHorizontal: 20, gap: 0 },
+  container: { paddingHorizontal: 20 },
   pageTitle: { fontFamily: "Inter_700Bold", fontSize: 26, marginBottom: 4 },
   pageSubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, marginBottom: 24 },
   cardSkeleton: {
@@ -139,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 28,
+    marginBottom: 20,
   },
   errorCard: {
     width: "100%",
@@ -148,9 +236,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    marginBottom: 28,
+    marginBottom: 20,
   },
   errorText: { fontFamily: "Inter_400Regular", fontSize: 14 },
+  freezeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 24,
+  },
+  freezeInfo: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  freezeText: { flex: 1 },
+  freezeTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, marginBottom: 2 },
+  freezeDesc: { fontFamily: "Inter_400Regular", fontSize: 12 },
   section: { marginBottom: 24 },
   sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 17, marginBottom: 12 },
   integrationNote: {
@@ -158,7 +258,6 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 14,
     borderRadius: 12,
-    borderWidth: 1,
     alignItems: "flex-start",
     marginBottom: 16,
   },

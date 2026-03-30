@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface UpdateProfileRequest {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+export interface MoneyRequest {
+  /** @minimum 0.01 */
+  amount: number;
+  note?: string;
 }

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -28,42 +27,45 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [apiError, setApiError] = useState("");
 
   const { login } = useAuth();
   const { mutate: authLogin, isPending } = useAuthLogin();
 
-  const validate = () => {
+  const validate = useCallback(() => {
     let valid = true;
+    setApiError("");
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       setEmailError("Please enter a valid email");
       valid = false;
     } else {
       setEmailError("");
     }
-    if (!password || password.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+    if (!password || password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
       valid = false;
     } else {
       setPasswordError("");
     }
     return valid;
-  };
+  }, [email, password]);
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     if (!validate()) return;
     authLogin(
-      { data: { email, password } },
+      { data: { email: email.trim().toLowerCase(), password } },
       {
         onSuccess: (data) => {
-          login(data.token, data.user as any);
+          login(data.token, data.user as never);
           router.replace("/(tabs)");
         },
-        onError: (err: any) => {
-          Alert.alert("Login Failed", err?.message ?? "Invalid credentials");
+        onError: (err: unknown) => {
+          const e = err as { message?: string };
+          setApiError(e?.message ?? "Invalid credentials. Please try again.");
         },
       }
     );
-  };
+  }, [email, password, validate, authLogin, login]);
 
   return (
     <KeyboardAvoidingView
@@ -79,8 +81,8 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={[styles.logoCircle, { backgroundColor: colors.tintLight }]}>
-            <Text style={[styles.logoText, { color: colors.tint }]}>N</Text>
+          <View style={[styles.logoCircle, { backgroundColor: colors.tint }]}>
+            <Text style={styles.logoText}>N</Text>
           </View>
           <Text style={[styles.appName, { color: colors.text }]}>NovaPay</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -89,6 +91,12 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.form}>
+          {apiError ? (
+            <View style={[styles.errorBanner, { backgroundColor: colors.errorLight }]}>
+              <Text style={[styles.errorBannerText, { color: colors.error }]}>{apiError}</Text>
+            </View>
+          ) : null}
+
           <Input
             label="Email"
             value={email}
@@ -111,7 +119,10 @@ export default function LoginScreen() {
             testID="password-input"
           />
 
-          <Pressable style={styles.forgotBtn}>
+          <Pressable
+            style={styles.forgotBtn}
+            onPress={() => router.push("/(auth)/forgot-password")}
+          >
             <Text style={[styles.forgotText, { color: colors.tint }]}>Forgot password?</Text>
           </Pressable>
 
@@ -119,6 +130,7 @@ export default function LoginScreen() {
             title="Sign In"
             onPress={handleLogin}
             loading={isPending}
+            disabled={isPending}
             fullWidth
             size="lg"
             testID="login-btn"
@@ -141,7 +153,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { paddingHorizontal: 24, flexGrow: 1 },
-  header: { alignItems: "center", marginBottom: 40 },
+  header: { alignItems: "center", marginBottom: 36 },
   logoCircle: {
     width: 72,
     height: 72,
@@ -152,11 +164,18 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 34,
+    fontSize: 36,
+    color: "#FFFFFF",
   },
   appName: { fontFamily: "Inter_700Bold", fontSize: 28, marginBottom: 6 },
   subtitle: { fontFamily: "Inter_400Regular", fontSize: 15 },
   form: { gap: 0 },
+  errorBanner: {
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorBannerText: { fontFamily: "Inter_500Medium", fontSize: 13 },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 20, marginTop: -4 },
   forgotText: { fontFamily: "Inter_500Medium", fontSize: 13 },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
