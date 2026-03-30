@@ -1,0 +1,116 @@
+You are working on an existing Expo Router + React Native fintech mobile app named NovaPay inside the current workspace.
+
+CURRENT STATE:
+- The app already has:
+  - auth screens (login/register)
+  - home dashboard
+  - virtual card screen
+  - transactions screen
+  - profile screen
+  - Express API server in artifacts/api-server
+  - generated API client in lib/api-client-react
+  - generated Zod schemas in lib/api-zod
+- The app is an MVP, but it still contains placeholder/demo flows and is missing several production features.
+
+TASK:
+Complete the app into a production-ready fintech wallet MVP without breaking the current design system or navigation structure. Keep the existing UI style, colors, and Expo Router architecture.
+
+DO NOT:
+- Do not redesign the whole app from scratch.
+- Do not remove existing screens unless necessary.
+- Do not break the current API client generation setup.
+- Do not hardcode demo data where real API state should exist.
+
+MUST FIX / ADD:
+
+1) REAL PRODUCT FLOW
+- Replace all placeholder/demo/sample flows with real app logic.
+- Connect the app to the existing backend endpoints properly.
+- Make the app behave like a real wallet product, not a mock demo.
+
+2) SETTINGS SCREEN
+Create a new (tabs)/settings screen with:
+- account settings
+- security settings
+- notifications toggle
+- language / region
+- help / support
+- privacy / terms
+- logout
+- app version
+
+3) AUTH IMPROVEMENTS
+- Add forgot password screen
+- Add email verification / OTP flow
+- Add better password validation
+- Add session persistence with secure storage
+- Auto-redirect correctly based on auth state
+
+4) PROFILE IMPROVEMENTS
+- Add edit profile screen
+- Allow updating first name, last name, phone
+- Add avatar upload placeholder if backend is not ready
+- Show KYC status clearly
+- Add KYC submission form with validation
+- Replace any sample/demo KYC confirmation with a real submit flow
+
+5) CARD FEATURES
+- Keep the virtual card screen but add:
+  - show/hide card number
+  - show/hide CVV
+  - freeze/unfreeze card
+  - card status indicator
+  - card limits section
+  - card details copy-to-clipboard
+  - card actions area
+- Remove placeholder text that says integration is pending and replace it with a proper empty state or integration status.
+
+6) WALLET / MONEY MOVEMENT
+- Add screens or modals for:
+  - add money
+  - withdraw
+  - bank transfer
+  - send money confirmation
+  - recipient history / recent recipients
+- Use the existing wallet and send-money endpoints if available.
+- Add proper success/failure states and transaction refresh.
+
+7) TRANSACTIONS
+- Implement pagination or infinite scroll properly.
+- Show empty state, loading state, and error state.
+- Add transaction detail view.
+- Make refresh work correctly.
+
+8) DASHBOARD
+- Add quick actions:
+  - Add Money
+  - Send Money
+  - Withdraw
+  - Cards
+  - KYC
+- Show wallet summary, recent transactions, and card status.
+- Make all summary cards data-driven from API.
+
+9) SECURITY / QUALITY
+- Add form validation everywhere with clear error messages.
+- Use secure storage for auth tokens if possible.
+- Improve API error handling.
+- Add logout cleanup.
+- Add rate limiting assumptions in the UI where relevant.
+- Add loading skeletons and offline-friendly error states.
+- Avoid exposing sensitive card data unless explicitly revealed.
+
+10) CODEBASE CLEANUP
+- Find and remove all placeholder, sample, mock, and temp flows.
+- Keep the folder structure clean and consistent.
+- Ensure TypeScript types are strict and no obvious unsafe any usage remains where avoidable.
+- Ensure all screens compile and navigation works.
+
+OUTPUT REQUIRED:
+- Update the existing app code directly.
+- Add any missing screens/components/hooks needed.
+- Keep the current visual style.
+- Provide a brief summary of what was completed and what still depends on real backend integrations.
+
+IMPORTANT BUSINESS RULE:
+This is a fintech wallet app. Prioritize correctness, validation, and security over cosmetic changes.
