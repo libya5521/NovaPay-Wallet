@@ -115,8 +115,11 @@ export type TransactionRecordType =
   (typeof TransactionRecordType)[keyof typeof TransactionRecordType];
 
 export const TransactionRecordType = {
-  credit: "credit",
-  debit: "debit",
+  send: "send",
+  receive: "receive",
+  deposit: "deposit",
+  withdrawal: "withdrawal",
+  card_payment: "card_payment",
 } as const;
 
 export type TransactionRecordStatus =

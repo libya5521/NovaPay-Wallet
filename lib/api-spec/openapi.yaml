@@ -648,7 +648,7 @@ components:
           type: string
         type:
           type: string
-          enum: [credit, debit]
+          enum: [send, receive, deposit, withdrawal, card_payment]
         amount:
           type: number
         currency:
